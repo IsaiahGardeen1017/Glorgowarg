@@ -5,11 +5,16 @@ import {
 import { CanvasRenderingContext2D } from "jsr:@gfx/canvas@0.5.6";
 import { GameState } from "../simulation/GameState.ts";
 
-export type CanvasRenderer = (ctx: CanvasRenderingContext2D, gameState: GameState) => void;
+export type CanvasRenderer = (
+    ctx: CanvasRenderingContext2D,
+    gameState: GameState,
+) => void;
 
-export async function startCanvasWindow(gameObject: GameState, gameRenderer: CanvasRenderer){
-
-    console.log('Starting Canvas');
+export async function startCanvasWindow(
+    gameObject: GameState,
+    gameRenderer: CanvasRenderer,
+) {
+    console.log("Starting Canvas");
 
     const canvas = new WindowCanvas({
         title: "Skia Canvas",
@@ -17,14 +22,25 @@ export async function startCanvasWindow(gameObject: GameState, gameRenderer: Can
         height: 600,
         resizable: true,
     });
-    
+
     canvas.onDraw = (ctx) => {
         gameRenderer(ctx, gameObject);
     };
-    
+
+    addEventListener("keydown", (evt) => {
+        console.log(evt.code);
+        if (evt.code === "KeyW") {
+            //Zoom Out
+            gameObject.zoomOut();
+        } else if (evt.code === "KeyS") {
+            //Zoome In
+            gameObject.zoomIn();
+        }
+    });
+
     await mainloop(() => {
         canvas.draw();
     });
 
-    console.log('over');
+    console.log("over");
 }

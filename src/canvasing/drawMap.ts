@@ -1,6 +1,17 @@
 import { CanvasRenderingContext2D } from "https://deno.land/x/dwm@0.3.7/ext/canvas.ts";
-import { GameState } from "../simulation/GameState.ts";
+import { GameState, RenderContext } from "../simulation/GameState.ts";
 import { getRandomInt } from "../utils/funcs.ts";
+import { Tile } from "../simulation/Tile.ts";
+
+export type DrawContext = RenderContext & {
+    windowHeight?: number;
+    windowWidth?: number;
+}
+
+function int(num: number): number{
+    return Math.floor(num);
+}
+
 
 export const drawMap = (
     ctx: CanvasRenderingContext2D,
@@ -16,39 +27,44 @@ export const drawMap = (
     
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    ctx.fillStyle = "white";
-    ctx.font = "30px Arial";
-    ctx.textBaseline = "top";
-    ctx.fillText('wow', 10, 10);
-    drawDiamond(ctx);
+
+    const drawContext: DrawContext = {
+        zoom: gameState.renderContext.zoom,
+        xOffset: gameState.renderContext.xOffset,
+        yOffset: gameState.renderContext.yOffset,
+        windowHeight: ctx.canvas.height,
+        windowWidth: ctx.canvas.width,
+    }
+
+    gameState.map.allTiles().forEach((tile) => {
+        drawTile(ctx, drawContext, tile);
+    });
     
 };
 
-function drawDiamond(ctx: CanvasRenderingContext2D) {
+const TILE_SIZE = 1;
 
-    const sizeWidth = ctx.canvas.width;
-    const sizeHeight = ctx.canvas.height;
+function drawTile(ctx: CanvasRenderingContext2D, context: DrawContext, tile: Tile) {
+    ctx.beginPath();
+    const squareSize = int(TILE_SIZE * context.zoom);
+    const x = (tile.x * squareSize) + context.xOffset;
+    const y = (tile.y * squareSize) + context.yOffset;
 
-    const midX = Math.floor(sizeWidth/2);
-    const midY = Math.floor(sizeHeight/2);
-    const hv = Math.floor(sizeHeight/2);
-    const wv = Math.floor(sizeWidth/2);
-    
-    // Set start-point
-    ctx.moveTo(midX, midY + hv);//tip top
+    // Set start-point (Bottom Left)
+    ctx.moveTo(x, y);
 
     // Set sub-points
-    ctx.lineTo(midX + wv, midY);//right
-    ctx.lineTo(midX, midY - hv);//bottom
-    ctx.lineTo(midX - wv, midY);//Left
+    ctx.lineTo(x, y + squareSize); //Top Left
+    ctx.lineTo(x + squareSize, y + squareSize); //Top Right
+    ctx.lineTo(x + squareSize, y); //Bottom Right
 
     // Set end-point
-    ctx.lineTo(midX, midY + hv);
+    ctx.lineTo(x, y);
 
-    // Stroke it (do the drawing)
-    ctx.strokeStyle = "red";
-    ctx.fillStyle = "green";
+    const greenVal = 180 + tile.getColorOffset();
+    const tileColor = "rgb(140,"+ greenVal +",40)"
+    ctx.fillStyle = tileColor;
 
-    ctx.stroke();
     ctx.fill();
+    ctx.closePath();
 }

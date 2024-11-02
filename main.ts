@@ -5,6 +5,6 @@ import { GameState } from "./src/simulation/GameState.ts";
 console.log('Starting glorgowarg');
 
 
-const gameState = new GameState(2, 2);
+const gameState = new GameState(500, 250);
 
 startCanvasWindow(gameState, drawMap);

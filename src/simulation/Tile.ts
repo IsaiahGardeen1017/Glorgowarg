@@ -15,9 +15,12 @@ export class Tile {
     right?: Tile;
     left?: Tile;
 
+    randInt: number;
+
     constructor(x: number, y: number){
         this.x = x;
         this.y = y;
+        this.randInt = getRandomInt(100000);
     }
 
     process(){
@@ -45,6 +48,10 @@ export class Tile {
         const possible = this.allAdjacent();
         const selected = possible[getRandomInt(possible.length)];
         return selected;
+    }
+
+    getColorOffset(): number {
+        return this.randInt % 40;
     }
 }
 
