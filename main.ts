@@ -1,8 +1,10 @@
-export function add(a: number, b: number): number {
-  return a + b;
-}
+import { startCanvasWindow } from "./src/canvasing/canvasDriver.ts";
+import { drawMap } from "./src/canvasing/drawMap.ts";
+import { GameState } from "./src/simulation/GameState.ts";
 
-// Learn more at https://docs.deno.com/runtime/manual/examples/module_metadata#concepts
-if (import.meta.main) {
-  console.log("Add 2 + 3 =", add(2, 3));
-}
+console.log('Starting glorgowarg');
+
+
+const gameState = new GameState(2, 2);
+
+startCanvasWindow(gameState, drawMap);

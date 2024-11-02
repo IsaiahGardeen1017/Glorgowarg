@@ -1,9 +1,8 @@
 {
   "tasks": {
     "dev": "deno run --watch main.ts",
-    "go": "deno run --unstable-webgpu --allow-import --allow-env --allow-read --allow-ffi --allow-write openGL.ts",
-    "canv": "deno run --allow-import --allow-env --allow-read --allow-ffi --allow-write --allow-net canvaser.ts",
-    "cube": "deno run --unstable-webgpu --allow-import --allow-env --allow-read --allow-ffi --allow-write ./examples/webgpu-cube.ts"
+    "go": "deno run --allow-import --allow-env --allow-read --allow-ffi --allow-write --allow-net main.ts",
+    "canv": "deno run --allow-import --allow-env --allow-read --allow-ffi --allow-write --allow-net canvaser.ts"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1"
