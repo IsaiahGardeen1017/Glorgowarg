@@ -1,49 +1,40 @@
+import { HexToRGB } from "../Graphics/colorUtils.ts";
+import { generateSquareCentered, Shape, shiftShape } from "../Graphics/shapeFunctions.ts";
 import { SimMap } from "./Map.ts";
 
 
 export type RenderContext = {
     zoom: number;
-    xOffset: number;
-    yOffset: number;
+    xPan: number;
+    yPan: number;
 }
 
 
 export class GameState {
     map: SimMap
     renderContext: RenderContext
+    testCube: Shape
+    ticks: number
+
 
     constructor(xSize: number, ySize: number){
+        this.ticks = 0;
         this.map = new SimMap(xSize, ySize);
         this.renderContext = {
-            zoom: 10,
-            xOffset: 0,
-            yOffset: 0,
+            zoom: 1.0,
+            xPan: 0,
+            yPan: 0,
         }
+        const color = HexToRGB('#5f9c6d');
+        this.testCube = generateSquareCentered(color, 0.25);
     }
 
     process(){
-        this.map.process();
+        this.ticks++;
     }
 
-
-    zoomIn(){
-        const z = this.renderContext.zoom;
-        if(z > 10){
-            this.renderContext.zoom += 2;
-        }else{
-            this.renderContext.zoom++;
-        }
-    }
-    
-    zoomOut(){
-        const z = this.renderContext.zoom;
-        if (z <= 1) {
-            // Do nothing, max out
-        }else if(z > 10){
-            this.renderContext.zoom -= 2;
-        }else{
-            this.renderContext.zoom--;
-        }
+    getShapesToRender(): Shape[]{
+        return [shiftShape(this.testCube, Math.sin(this.ticks/100)/2, Math.cos(this.ticks/100)/2)];
     }
 
 }

@@ -30,8 +30,8 @@ export const drawMap = (
 
     const drawContext: DrawContext = {
         zoom: gameState.renderContext.zoom,
-        xOffset: gameState.renderContext.xOffset,
-        yOffset: gameState.renderContext.yOffset,
+        xPan: gameState.renderContext.xPan,
+        yPan: gameState.renderContext.yPan,
         windowHeight: ctx.canvas.height,
         windowWidth: ctx.canvas.width,
     }
@@ -47,8 +47,8 @@ const TILE_SIZE = 1;
 function drawTile(ctx: CanvasRenderingContext2D, context: DrawContext, tile: Tile) {
     ctx.beginPath();
     const squareSize = int(TILE_SIZE * context.zoom);
-    const x = (tile.x * squareSize) + context.xOffset;
-    const y = (tile.y * squareSize) + context.yOffset;
+    const x = (tile.x * squareSize) + context.xPan;
+    const y = (tile.y * squareSize) + context.yPan;
 
     // Set start-point (Bottom Left)
     ctx.moveTo(x, y);
