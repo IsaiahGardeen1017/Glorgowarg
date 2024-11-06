@@ -31,10 +31,8 @@ export async function startCanvasWindow(
         console.log(evt.code);
         if (evt.code === "KeyW") {
             //Zoom Out
-            gameObject.zoomOut();
         } else if (evt.code === "KeyS") {
             //Zoome In
-            gameObject.zoomIn();
         }
     });
 

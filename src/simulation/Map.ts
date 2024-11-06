@@ -1,9 +1,15 @@
+import { NoiseMaker } from "./NoiseFunctions.ts";
 import { Tile } from "./Tile.ts";
+import { perlinNoise2D } from "https://deno.land/x/noise/mod.ts";
+
+type inputFunc = (tile: Tile) => void;
 
 export class SimMap{
     xSize: number;
     ySize: number;
     tiles: Tile[][];
+
+    noiseMaker?: NoiseMaker;
 
     constructor(xSize: number, ySize: number){
         this.xSize = xSize;
@@ -11,54 +17,54 @@ export class SimMap{
 
         this.tiles = [];
 
+        
         this.generateMap();
     }
-
+    
     generateMap(){
+        this.noiseMaker = new NoiseMaker(0.2, 10);
+
         //Create Tiles
         for (let i = 0; i < this.xSize; i++) {
             const col = [];
             for (let j = 0; j < this.ySize; j++) {
-                const newTile: Tile = new Tile(i, j);
-                col.push(newTile);
+                if(i === Math.floor(this.xSize/2) && j === Math.floor(this.ySize/2)){
+                    col.push(new Tile(i, j, 'spawn'));
+                }else{
+                    if(isWater(this.noiseMaker, i, j)){
+                        col.push(new Tile(i, j, 'water'));
+                    }else{
+                        col.push(new Tile(i, j, 'dirt'));
+                    }
+                }
             }
             this.tiles.push(col);
-        }
-    
-        // Set Adjacency References
-        const tiles = this.allTiles();
-        tiles.forEach((tile) => {
-            const x = tile.x;
-            const y = tile.y;
-            if (x + 1 < this.xSize) {
-                tile.right = this.tiles[x + 1][y];
-            }
-            if (x > 0) {
-                tile.left = this.tiles[x - 1][y];
-            }
-            if (y + 1 < this.ySize) {
-                tile.above = this.tiles[x][y + 1];
-            }
-            if (y > 0) {
-                tile.below = this.tiles[x][y - 1];
-            }
-        });
+        }   
     }
 
-
-    allTiles() {
-        const tiles = [];
+    
+    forEachTile(func: inputFunc): void{
         for (let i = 0; i < this.xSize; i++) {
             for (let j = 0; j < this.ySize; j++) {
-                tiles.push(this.tiles[i][j]);
+                func(this.tiles[i][j]);
             }
         }
-        return (tiles);
     }
 
-    process(){
-        this.allTiles().forEach((tile) => {
-            tile.process();
-        });
+    process(): void{
+        this.forEachTile((tile: Tile) => {this.processTile(tile)})
     }
+
+    processTile(tile: Tile): void{
+
+    }
+}
+
+
+function isWater(noiseMaker: NoiseMaker, x: number, y: number){
+    let val = noiseMaker.get2Dnoise(x, y);
+    if(val > 0){
+        return true;
+    }
+    return false;
 }

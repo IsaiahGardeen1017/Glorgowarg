@@ -29,9 +29,9 @@ export const drawMap = (
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
     const drawContext: DrawContext = {
-        zoom: gameState.renderContext.zoom,
-        xPan: gameState.renderContext.xPan,
-        yPan: gameState.renderContext.yPan,
+        zoom: 1,
+        xPan: 0,
+        yPan: 0,
         windowHeight: ctx.canvas.height,
         windowWidth: ctx.canvas.width,
     }
@@ -61,7 +61,7 @@ function drawTile(ctx: CanvasRenderingContext2D, context: DrawContext, tile: Til
     // Set end-point
     ctx.lineTo(x, y);
 
-    const greenVal = 180 + tile.getColorOffset();
+    const greenVal = 180 + tile.randIntFunc(40);
     const tileColor = "rgb(140,"+ greenVal +",40)"
     ctx.fillStyle = tileColor;
 

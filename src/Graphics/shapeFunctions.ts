@@ -1,18 +1,21 @@
 import { SHADER_TYPE } from "https://deno.land/x/gluten@0.1.3/api/gles23.2.ts";
-import { RGB, RGBToGLRGB } from "./colorUtils.ts";
+import { HexToRGB, rgb, RGB, RGBToGLRGB } from "./colorUtils.ts";
+import { GameState } from "../simulation/GameState.ts";
+import { Tile } from "../simulation/Tile.ts";
+import { DefaultColor, GrassGreen, SpawnColor, WaterBlue } from "./colors.ts";
 
 export type Shape = {
     vertices: number[];
     color: RGB;
 };
 
-export type renderBuffers = {
+export type RenderBufferGroup = {
     vertices: Float32Array;
     colors: Float32Array;
     numTriangles: number;
 };
 
-export function combineShapes(shapesArray: Shape[]): renderBuffers {
+export function combineShapes(shapesArray: Shape[]): RenderBufferGroup {
     const verts: number[] = [];
     const cols: number[] = [];
     let triCount = 0;
@@ -30,7 +33,7 @@ export function combineShapes(shapesArray: Shape[]): renderBuffers {
             triCount++;
         }
     }
-
+    shapesArray = [];
     return {
         vertices: new Float32Array(verts),
         colors: new Float32Array(cols),
@@ -70,4 +73,35 @@ export function shiftShape(shape: Shape, xOffset: number = 0, yOffset: number = 
         newShape.vertices.push(shape.vertices[i + 2] + zOffset);
     }
     return newShape;
+}
+
+
+export function getTileShapes(gameState: GameState): Shape[]{
+    const shapes: Shape[] = [];
+
+    gameState.map.forEachTile(tile => {
+        shapes.push(shapeFromTile(tile));
+    });
+
+    return shapes;
+}
+
+
+function shapeFromTile(tile: Tile){
+    let color;
+    switch(tile.type){
+        case 'dirt':
+        color = GrassGreen(tile.randInt);
+        break;
+        case 'spawn':
+            color = SpawnColor();
+            break;
+        case 'water':
+            color = WaterBlue(tile.randInt);
+            break;
+        default:
+            color = DefaultColor();
+    }
+    const shape = generateSquareCentered(color, 0.5, tile.x, tile.y, 1.0);
+    return shape;
 }

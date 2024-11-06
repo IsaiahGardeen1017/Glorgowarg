@@ -5,15 +5,28 @@ import {
 } from "https://deno.land/x/dwm@0.3.4/mod.ts";
 import * as gl from "https://deno.land/x/gluten@0.1.3/api/gles23.2.ts";
 import { GameState } from "../simulation/GameState.ts";
-import { GLRGB, HexToGLRGB, HexToRGB} from "./colorUtils.ts";
-import { combineShapes, generateSquareCentered } from "./shapeFunctions.ts";
+import { GLRGB, HexToGLRGB, HexToRGB } from "./colorUtils.ts";
+import {
+    combineShapes,
+    generateSquareCentered,
+    getTileShapes,
+    RenderBufferGroup,
+    Shape,
+} from "./shapeFunctions.ts";
 import { loadShader } from "./glFunctions.ts";
+
+
+
+const BASE_SCALE = 1000;
+
+const START_VIEWPORT_WIDTH = Math.floor(BASE_SCALE) * 2;
+const START_VIEWPORT_HEIGHT = Math.floor(BASE_SCALE);
 
 export async function startOpenGlWindow(game: GameState) {
     const window = createWindow({
         title: "DenoGL",
-        width: 1000,
-        height: 1000,
+        width: START_VIEWPORT_WIDTH,
+        height: START_VIEWPORT_HEIGHT,
         resizable: true,
         glVersion: "v3.2",
         gles: true,
@@ -26,11 +39,12 @@ export async function startOpenGlWindow(game: GameState) {
     in vec4 vPosition;
     in vec4 vColor;
     uniform vec4 vScalar;
+    uniform vec4 vPan;
 
     out vec4 color;
 
     void main() {
-      gl_Position = vPosition * vScalar;
+      gl_Position = (vPosition + vPan) * vScalar;
       color = vColor;
     }
     `;
@@ -45,31 +59,35 @@ export async function startOpenGlWindow(game: GameState) {
     }
     `;
 
+    //Setup shaders
     const vShader = loadShader(gl.VERTEX_SHADER, vShaderSrc);
     const fShader = loadShader(gl.FRAGMENT_SHADER, fShaderSrc);
 
-    const program:gl.GLuint = gl.CreateProgram();
+    const program: gl.GLuint = gl.CreateProgram();
     gl.AttachShader(program, vShader);
     gl.AttachShader(program, fShader);
 
     gl.LinkProgram(program);
 
-    const vPosAttInt = gl.GetAttribLocation(program, new TextEncoder().encode("vPosition\0"));
-    const vColAttInt = gl.GetAttribLocation(program, new TextEncoder().encode("vColor\0"));
-    const vScalarAttInt = gl.GetUniformLocation(program, new TextEncoder().encode("vScalar\0"));
+    //Get shader input integers
+    const attribLoc_vPosition = gl.GetAttribLocation(
+        program,
+        new TextEncoder().encode("vPosition\0"),
+    );
+    const attribLoc_vColor = gl.GetAttribLocation(
+        program,
+        new TextEncoder().encode("vColor\0"),
+    );
+    const unifLoc_vScalar = gl.GetUniformLocation(
+        program,
+        new TextEncoder().encode("vScalar\0"),
+    );
+    const unifLoc_vPan = gl.GetUniformLocation(
+        program,
+        new TextEncoder().encode("vPan\0"),
+    );
 
-    console.log(vPosAttInt);
-    console.log(vColAttInt);
-    console.log(vScalarAttInt);
-
-    //gl.BindAttribLocation(program, vPosAttInt, new TextEncoder().encode("vPosition\0"));
-    //gl.BindAttribLocation(program, vColAttInt, new TextEncoder().encode("vColor\0"));
-    //gl.BindAttribLocation(program, vScalarAttInt, new TextEncoder().encode("vScalar\0"));
-
-    
-
-    
-
+    //Do some stuff (?)
     const status = new Int32Array(1);
     gl.GetProgramiv(program, gl.LINK_STATUS, status);
     if (status[0] === gl.FALSE) {
@@ -82,6 +100,7 @@ export async function startOpenGlWindow(game: GameState) {
         Deno.exit(1);
     }
 
+    //Set clear color
     const cc: GLRGB = HexToGLRGB("#34b6c9");
     gl.ClearColor(cc.r, cc.g, cc.b, 1.0);
 
@@ -89,47 +108,73 @@ export async function startOpenGlWindow(game: GameState) {
         gl.Viewport(0, 0, event.width, event.height);
     });
 
-    let zoomLevel = 100;
-    addEventListener("keydown", (evt) => {
-        if (evt.code === "KeyW") {
-            //Zoom Out
-            if(zoomLevel > 5){
-                zoomLevel-=5;
-            }
-        } else if (evt.code === "KeyS") {
-            //Zoome In
-            zoomLevel+=5;
+    //Handle input
+    let zoomLevel = 10;
+    let maxZoom = 100;
+    let minZoom = 0.05;
+    addEventListener("scroll", (evt) => {
+        const scrollValue = evt.scrollY; // 1 or -1
+        const zoomDelta = zoomLevel * 0.1 * scrollValue;
+        zoomLevel += zoomDelta;
+        
+        if (zoomLevel >= maxZoom) {
+            zoomLevel = maxZoom;
+        } else if (zoomLevel <= minZoom) {
+            zoomLevel = minZoom;
         }
     });
 
-    const BASE_SCALE = 1000.0;
+    addEventListener("keydown", (evt) => {
+        console.log(evt.code);
+        console.log('zoom:' + zoomLevel);
+        const mem = Deno.memoryUsage();
+        console.log('rss: ' + mem.rss * 0.000001);
+        console.log('heapTotal: ' + mem.heapTotal * 0.000001);
+        console.log('heapUsed: ' + mem.heapUsed * 0.000001);
+        console.log('external: '  + mem.external * 0.000001);
+    });
 
+    let panX = game.map.xSize / -2.0;
+    let panY = game.map.ySize / -2.0;
+
+
+    let tileShapes = getTileShapes(game);
+    let tileShapesData = combineShapes(tileShapes);
+    const numTileTriangles = tileShapesData.numTriangles;
+    
+    gl.UseProgram(program);
+
+    gl.VertexAttribPointer(attribLoc_vPosition,3,gl.FLOAT,gl.FALSE,0,tileShapesData.vertices);
+    gl.EnableVertexAttribArray(attribLoc_vPosition);
+
+    gl.VertexAttribPointer(attribLoc_vColor,3,gl.FLOAT,gl.FALSE,0,tileShapesData.colors);
+    gl.EnableVertexAttribArray(attribLoc_vColor);
+
+    
+    tileShapes = [];
+    tileShapesData.vertices = new Float32Array();
+    tileShapesData.colors = new Float32Array();
+
+    //Do every frame
     function frame() {
+        game.process();
+
         const viewport = new Int32Array(4);
         gl.GetIntegerv(gl.VIEWPORT, viewport);
         const width = viewport[2];
         const height = viewport[3];
 
         const scale = BASE_SCALE * (zoomLevel / 100.0);
-        const scalerVector = [scale/width,scale/height,1.0,1.0];
+        const scalerVector = [scale / width, scale / height, 1.0, 1.0];
+        const panVector = [panX, panY, 0.0, 0.0]; // Since we add this to the vertex position vector we want the last two to be 0.0
+
 
         gl.Clear(gl.COLOR_BUFFER_BIT);
-        gl.UseProgram(program);
-        // deno-fmt-ignore
 
-        game.process();
-        const shapes = game.getShapesToRender();
-        const renderBuffer = combineShapes(shapes);
+        gl.Uniform4f(unifLoc_vScalar,scalerVector[0],scalerVector[1],scalerVector[2],scalerVector[3],);
 
-        gl.VertexAttribPointer(vPosAttInt, 3, gl.FLOAT, gl.FALSE, 0, renderBuffer.vertices);
-        gl.EnableVertexAttribArray(vPosAttInt);
-
-        gl.VertexAttribPointer(vColAttInt, 3, gl.FLOAT, gl.FALSE, 0, renderBuffer.colors);
-        gl.EnableVertexAttribArray(vColAttInt);
-
-        gl.Uniform4f(vScalarAttInt, scalerVector[0], scalerVector[1], scalerVector[2], scalerVector[3]);
-
-        gl.DrawArrays(gl.TRIANGLES, 0, renderBuffer.numTriangles);
+        gl.Uniform4f(unifLoc_vPan,panVector[0],panVector[1],panVector[2],panVector[3],);
+        gl.DrawArrays(gl.TRIANGLES, 0, numTileTriangles);
         window.swapBuffers();
     }
 

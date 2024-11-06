@@ -10,6 +10,11 @@ export type RGB = {
     b: number
 }
 
+export function rgb(r:number, g:number, b: number): RGB{
+    return {
+        r,g,b
+    }
+}
 
 export function HexToRGB(hex: string): RGB{
     const realHex = hex.split('#').pop() || hex;
