@@ -4,34 +4,18 @@ function sin(num: number) {
     return Math.sin(num);
 }
 
-type intMap = {
-    ints: number[][];
-}
+
 
 export class NoiseMaker {
-    layers: intMap[];
-    constructor(xSize: number, ySize:number, passes = 3, averageWidth = 5) {
-        this.layers = [];
-
-        //Set first layer
-        this.layers.push({ints: []});
-        for (let i = 0; i < xSize; i++) {
-            this.layers[0].ints.push([]);
-            for(let j = 0; j < ySize; j++){
-                this.layers[0].ints[i].push(Math.random()); 
-            }
-        }
-
-        //passes
-        for(let l = 0; l < passes; l++){
-            for (let i = 0; i < xSize; i++) {
-                this.layers[0].ints.push([]);
-                for(let j = 0; j < ySize; j++){
-                    //i j is x y
-                    //Here we sample previous layer to get average
-                    
-                    this.layers[0].ints[i].push(Math.random()); 
-                }
+    baseLayer: number[][];
+    sampleWidth: number;
+    constructor(xSize: number, ySize:number, passes = 3, sampleWidth = 5) {
+        this.baseLayer = [];
+        this.sampleWidth = sampleWidth;
+        for(let x = 0; x < xSize; x++){
+            this.baseLayer.push([]);
+            for(let y = 0; y < ySize; y++){
+                this.baseLayer[x].push(Math.random());
             }
         }
     }
@@ -39,6 +23,24 @@ export class NoiseMaker {
 
 
     get2Dnoise(x: number, y: number): number {
-        return Math.random() - 0.5;
+        return getAverageFromLayer(this.baseLayer, x, y, this.sampleWidth);
     }
+}
+
+export function getAverageFromLayer(layer: number[][], x: number, y: number, sampleWidth: number){
+    const values = [];
+    for(let i = x - sampleWidth; i < x + sampleWidth + 1; i++){
+        for(let j = y - sampleWidth; j < y + sampleWidth + 1; j++){
+            if(layer[i] && layer[i][j]){
+                values.push(layer[i][j]);
+            }
+        }
+    }
+
+    let sum = 0;
+    //Average values
+    for(let i = 0; i < values.length; i++){
+        sum += values[i];
+    }
+    return sum/values.length;
 }

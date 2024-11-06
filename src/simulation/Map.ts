@@ -22,8 +22,8 @@ export class SimMap{
     }
     
     generateMap(){
-        this.noiseMaker = new NoiseMaker(0.2, 10);
-
+        this.noiseMaker = new NoiseMaker(this.xSize, this.ySize);
+        
         //Create Tiles
         for (let i = 0; i < this.xSize; i++) {
             const col = [];
@@ -39,7 +39,7 @@ export class SimMap{
                 }
             }
             this.tiles.push(col);
-        }   
+        }
     }
 
     
@@ -63,7 +63,7 @@ export class SimMap{
 
 function isWater(noiseMaker: NoiseMaker, x: number, y: number){
     let val = noiseMaker.get2Dnoise(x, y);
-    if(val > 0){
+    if(val > 0.5){
         return true;
     }
     return false;

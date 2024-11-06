@@ -151,28 +151,25 @@ export async function startOpenGlWindow(game: GameState) {
     gl.EnableVertexAttribArray(attribLoc_vColor);
 
     
-    tileShapes = [];
-    tileShapesData.vertices = new Float32Array();
-    tileShapesData.colors = new Float32Array();
-
     //Do every frame
     function frame() {
+        console.log('frame')
         game.process();
-
+        
         const viewport = new Int32Array(4);
         gl.GetIntegerv(gl.VIEWPORT, viewport);
         const width = viewport[2];
         const height = viewport[3];
-
+        
         const scale = BASE_SCALE * (zoomLevel / 100.0);
         const scalerVector = [scale / width, scale / height, 1.0, 1.0];
         const panVector = [panX, panY, 0.0, 0.0]; // Since we add this to the vertex position vector we want the last two to be 0.0
-
-
+        
+        
         gl.Clear(gl.COLOR_BUFFER_BIT);
-
+        
         gl.Uniform4f(unifLoc_vScalar,scalerVector[0],scalerVector[1],scalerVector[2],scalerVector[3],);
-
+        
         gl.Uniform4f(unifLoc_vPan,panVector[0],panVector[1],panVector[2],panVector[3],);
         gl.DrawArrays(gl.TRIANGLES, 0, numTileTriangles);
         window.swapBuffers();
