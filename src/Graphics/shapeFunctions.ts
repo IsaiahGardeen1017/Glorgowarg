@@ -1,8 +1,8 @@
 import { SHADER_TYPE } from "https://deno.land/x/gluten@0.1.3/api/gles23.2.ts";
-import { HexToRGB, rgb, RGB, RGBToGLRGB } from "./colorUtils.ts";
+import { HexToRGB, RGB, rgb, RGBToGLRGB } from "./colorUtils.ts";
 import { GameState } from "../simulation/GameState.ts";
 import { Tile } from "../simulation/Tile.ts";
-import { DefaultColor, GrassGreen, SpawnColor, WaterBlue } from "./colors.ts";
+import { DeepBlue, DefaultColor, GrassGreen, SpawnColor, SteppeGreen, WaterBlue } from "./colors.ts";
 
 export type Shape = {
     vertices: number[];
@@ -53,7 +53,7 @@ export function generateSquareCentered(
     tris.push(x + radius, y + radius, z);
     tris.push(x + radius, y - radius, z);
     tris.push(x - radius, y - radius, z);
-    
+
     tris.push(x + radius, y + radius, z);
     tris.push(x - radius, y - radius, z);
     tris.push(x - radius, y + radius, z);
@@ -61,12 +61,17 @@ export function generateSquareCentered(
     return { vertices: tris, color: color };
 }
 
-export function shiftShape(shape: Shape, xOffset: number = 0, yOffset: number = 0, zOffset: number = 0): Shape {
+export function shiftShape(
+    shape: Shape,
+    xOffset: number = 0,
+    yOffset: number = 0,
+    zOffset: number = 0,
+): Shape {
     const newShape: Shape = {
         color: shape.color,
-        vertices: []
-    }
-    
+        vertices: [],
+    };
+
     for (let i = 0; i < shape.vertices.length; i += 3) {
         newShape.vertices.push(shape.vertices[i] + xOffset);
         newShape.vertices.push(shape.vertices[i + 1] + yOffset);
@@ -75,29 +80,33 @@ export function shiftShape(shape: Shape, xOffset: number = 0, yOffset: number = 
     return newShape;
 }
 
-
-export function getTileShapes(gameState: GameState): Shape[]{
+export function getTileShapes(gameState: GameState): Shape[] {
     const shapes: Shape[] = [];
 
-    gameState.map.forEachTile(tile => {
+    gameState.map.forEachTile((tile) => {
         shapes.push(shapeFromTile(tile));
     });
 
     return shapes;
 }
 
-
-function shapeFromTile(tile: Tile){
+function shapeFromTile(tile: Tile) {
     let color;
-    switch(tile.type){
-        case 'dirt':
-        color = GrassGreen(tile.randInt);
-        break;
-        case 'spawn':
+    switch (tile.type) {
+        case "dirt":
+            color = GrassGreen(tile.randInt);
+            break;
+        case "spawn":
             color = SpawnColor();
             break;
-        case 'water':
+        case "water":
             color = WaterBlue(tile.randInt);
+            break;
+        case "deep":
+            color = DeepBlue(tile.randInt);
+            break;
+        case "steppe":
+            color = SteppeGreen(tile.randInt);
             break;
         default:
             color = DefaultColor();

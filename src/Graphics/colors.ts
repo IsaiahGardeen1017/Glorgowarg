@@ -11,6 +11,15 @@ export function GrassGreen(randInt?: number): RGB{
     }
 }
 
+export function SteppeGreen(randInt?: number): RGB{
+    const r = randInt ? randInt % 20 : 10;
+    return {
+        r: 190,
+        g: 200 + r,
+        b: 150
+    }
+}
+
 export function WaterBlue(randInt?: number): RGB{
     const r = randInt ? randInt % 10 : 5;
     return {
@@ -19,6 +28,15 @@ export function WaterBlue(randInt?: number): RGB{
         b: 255
     }
 }
+
+export function DeepBlue(randInt?: number): RGB{
+    const r = randInt ? randInt % 10 : 5;
+    return {
+        r: 15 + r,
+        g: 125 + r,
+        b: 175
+    }
+} 
 
 export function SpawnColor(): RGB{
     return {

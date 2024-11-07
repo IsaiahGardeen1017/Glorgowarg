@@ -1,6 +1,6 @@
 import { getRandomInt } from "../utils/funcs.ts";
 
-export type TileType = 'dirt' | 'water' | 'spawn'
+export type TileType = 'dirt' | 'water' | 'spawn' | 'steppe' | 'deep'
 
 
 

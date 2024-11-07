@@ -153,7 +153,6 @@ export async function startOpenGlWindow(game: GameState) {
     
     //Do every frame
     function frame() {
-        console.log('frame')
         game.process();
         
         const viewport = new Int32Array(4);

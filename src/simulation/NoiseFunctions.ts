@@ -8,22 +8,53 @@ function sin(num: number) {
 
 export class NoiseMaker {
     baseLayer: number[][];
+    current: number[][];
+    previous: number[][];
     sampleWidth: number;
-    constructor(xSize: number, ySize:number, passes = 3, sampleWidth = 5) {
-        this.baseLayer = [];
+    constructor(xSize: number, ySize:number, passes = 5, sampleWidth = 7, resolution = 25, iterationalRandomness = 0.05) {
         this.sampleWidth = sampleWidth;
-        for(let x = 0; x < xSize; x++){
+
+        const ir = iterationalRandomness > 0 && iterationalRandomness <= 1.0 ? iterationalRandomness : 0.0;
+        
+        //Set Base Layer
+        this.baseLayer = [];
+        for(let x = 0; x < Math.ceil(xSize/resolution); x++){
             this.baseLayer.push([]);
-            for(let y = 0; y < ySize; y++){
+            for(let y = 0; y < Math.ceil(ySize/resolution); y++){
                 this.baseLayer[x].push(Math.random());
             }
+        }
+        
+        //Set Previous
+        this.previous = [];
+        for(let x = 0; x < xSize; x++){
+            this.previous.push([]);
+            for(let y = 0; y < ySize; y++){
+                const val = this.baseLayer[Math.floor(x/resolution)][Math.floor(y/resolution)];
+                this.previous[x].push(val);
+            }
+        }
+        this.current = [];
+
+        //For each pass set calculate current and then set previous to current
+        for(let p = 0; p < passes; p++){
+            this.current = [];
+            for(let x = 0; x < xSize; x++){
+                this.current.push([]);
+                for(let y = 0; y < ySize; y++){
+                    const randDelta = ir > 0 ? (Math.random() * ir) - (ir/2) : 0;
+                    this.current[x].push(randDelta + getAverageFromLayer(this.previous, x, y, this.sampleWidth));
+                }
+            }
+            this.previous = this.current;
         }
     }
 
 
 
     get2Dnoise(x: number, y: number): number {
-        return getAverageFromLayer(this.baseLayer, x, y, this.sampleWidth);
+        const val1x = this.current[x][y];
+        return val1x;
     }
 }
 
