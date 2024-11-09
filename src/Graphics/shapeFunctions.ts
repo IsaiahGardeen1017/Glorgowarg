@@ -2,7 +2,8 @@ import { SHADER_TYPE } from "https://deno.land/x/gluten@0.1.3/api/gles23.2.ts";
 import { HexToRGB, RGB, rgb, RGBToGLRGB } from "./colorUtils.ts";
 import { GameState } from "../simulation/GameState.ts";
 import { Tile } from "../simulation/Tile.ts";
-import { DeepBlue, DefaultColor, GrassGreen, SpawnColor, SteppeGreen, WaterBlue } from "./colors.ts";
+import { DeepBlue, DefaultColor, GrassGreen, GrobberColor, SpawnColor, SteppeGreen, WaterBlue } from "./colors.ts";
+import { Creature } from "../simulation/Creatures/Creature.ts";
 
 export type Shape = {
     vertices: number[];
@@ -41,26 +42,6 @@ export function combineShapes(shapesArray: Shape[]): RenderBufferGroup {
     };
 }
 
-export function generateSquareCentered(
-    color: RGB,
-    radius: number,
-    x: number = 0.0,
-    y: number = 0.0,
-    z: number = 0.0,
-): Shape {
-    const tris: number[] = [];
-
-    tris.push(x + radius, y + radius, z);
-    tris.push(x + radius, y - radius, z);
-    tris.push(x - radius, y - radius, z);
-
-    tris.push(x + radius, y + radius, z);
-    tris.push(x - radius, y - radius, z);
-    tris.push(x - radius, y + radius, z);
-
-    return { vertices: tris, color: color };
-}
-
 export function shiftShape(
     shape: Shape,
     xOffset: number = 0,
@@ -90,6 +71,28 @@ export function getTileShapes(gameState: GameState): Shape[] {
     return shapes;
 }
 
+export function getCreatureShapes(gameState: GameState): Shape[] {
+    const shapes: Shape[] = [];
+
+    for(let i = 0; i < gameState.creatures.length; i++){
+        shapeFromCreature(gameState.creatures[i]);
+    }
+    return shapes;
+}
+
+function shapeFromCreature(creature: Creature) {
+    let color;
+    switch (creature.type) {
+        case "Grobber":
+            color = GrobberColor();
+            break;
+        default:
+            color = DefaultColor();
+    }
+    const shape = generateSquareCentered(color, 0.4, creature.x, creature.y, 2.0);
+    return shape;
+}
+
 function shapeFromTile(tile: Tile) {
     let color;
     switch (tile.type) {
@@ -114,3 +117,27 @@ function shapeFromTile(tile: Tile) {
     const shape = generateSquareCentered(color, 0.5, tile.x, tile.y, 1.0);
     return shape;
 }
+
+
+
+export function generateSquareCentered(
+    color: RGB,
+    radius: number,
+    x: number = 0.0,
+    y: number = 0.0,
+    z: number = 0.0,
+): Shape {
+    const tris: number[] = [];
+
+    tris.push(x + radius, y + radius, z);
+    tris.push(x + radius, y - radius, z);
+    tris.push(x - radius, y - radius, z);
+
+    tris.push(x + radius, y + radius, z);
+    tris.push(x - radius, y - radius, z);
+    tris.push(x - radius, y + radius, z);
+
+    return { vertices: tris, color: color };
+}
+
+

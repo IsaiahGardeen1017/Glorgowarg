@@ -9,11 +9,14 @@ import { GLRGB, HexToGLRGB, HexToRGB } from "./colorUtils.ts";
 import {
     combineShapes,
     generateSquareCentered,
+    getCreatureShapes,
     getTileShapes,
     RenderBufferGroup,
     Shape,
 } from "./shapeFunctions.ts";
 import { loadShader } from "./glFunctions.ts";
+import { logTiming } from "../loggingFuncs.ts";
+import { GLFW_ACCUM_ALPHA_BITS } from "https://deno.land/x/dwm@0.3.7/src/platform/glfw/constants.ts";
 
 
 
@@ -23,6 +26,7 @@ const START_VIEWPORT_WIDTH = Math.floor(BASE_SCALE) * 2;
 const START_VIEWPORT_HEIGHT = Math.floor(BASE_SCALE);
 
 export async function startOpenGlWindow(game: GameState) {
+    let timeCounter = logTiming('Starting graphics driver');
     const window = createWindow({
         title: "DenoGL",
         width: START_VIEWPORT_WIDTH,
@@ -31,6 +35,9 @@ export async function startOpenGlWindow(game: GameState) {
         glVersion: "v3.2",
         gles: true,
     });
+    
+    timeCounter = logTiming('Created Window');
+    
 
     gl.load(getProcAddress);
 
@@ -70,22 +77,11 @@ export async function startOpenGlWindow(game: GameState) {
     gl.LinkProgram(program);
 
     //Get shader input integers
-    const attribLoc_vPosition = gl.GetAttribLocation(
-        program,
-        new TextEncoder().encode("vPosition\0"),
-    );
-    const attribLoc_vColor = gl.GetAttribLocation(
-        program,
-        new TextEncoder().encode("vColor\0"),
-    );
-    const unifLoc_vScalar = gl.GetUniformLocation(
-        program,
-        new TextEncoder().encode("vScalar\0"),
-    );
-    const unifLoc_vPan = gl.GetUniformLocation(
-        program,
-        new TextEncoder().encode("vPan\0"),
-    );
+    const staticAttrbLoc_vPosition = gl.GetAttribLocation(program,new TextEncoder().encode("vPosition\0"),);
+    const staticAttrbLoc_vColor = gl.GetAttribLocation(program,new TextEncoder().encode("vColor\0"),);
+    const unifLoc_vScalar = gl.GetUniformLocation(program,new TextEncoder().encode("vScalar\0"),);
+    const unifLoc_vPan = gl.GetUniformLocation(program,new TextEncoder().encode("vPan\0"),);
+
 
     //Do some stuff (?)
     const status = new Int32Array(1);
@@ -99,6 +95,9 @@ export async function startOpenGlWindow(game: GameState) {
         gl.DeleteProgram(program);
         Deno.exit(1);
     }
+
+
+    gl.UseProgram(program);
 
     //Set clear color
     const cc: GLRGB = HexToGLRGB("#34b6c9");
@@ -138,18 +137,24 @@ export async function startOpenGlWindow(game: GameState) {
     let panY = game.map.ySize / -2.0;
 
 
+    logTiming('GL setup complete');
+
     let tileShapes = getTileShapes(game);
     let tileShapesData = combineShapes(tileShapes);
     const numTileTriangles = tileShapesData.numTriangles;
+
     
-    gl.UseProgram(program);
+    
+    logTiming('Shapes arrays compiled');
+    
 
-    gl.VertexAttribPointer(attribLoc_vPosition,3,gl.FLOAT,gl.FALSE,0,tileShapesData.vertices);
-    gl.EnableVertexAttribArray(attribLoc_vPosition);
-
-    gl.VertexAttribPointer(attribLoc_vColor,3,gl.FLOAT,gl.FALSE,0,tileShapesData.colors);
-    gl.EnableVertexAttribArray(attribLoc_vColor);
-
+    gl.VertexAttribPointer(staticAttrbLoc_vPosition,3,gl.FLOAT,gl.FALSE,0,tileShapesData.vertices);
+    gl.EnableVertexAttribArray(staticAttrbLoc_vPosition);
+    
+    gl.VertexAttribPointer(staticAttrbLoc_vColor,3,gl.FLOAT,gl.FALSE,0,tileShapesData.colors);
+    gl.EnableVertexAttribArray(staticAttrbLoc_vColor);
+    
+    logTiming('Attributes set, starting loop');
     
     //Do every frame
     function frame() {
@@ -167,12 +172,15 @@ export async function startOpenGlWindow(game: GameState) {
         
         gl.Clear(gl.COLOR_BUFFER_BIT);
         
+        //Set Uniforms
         gl.Uniform4f(unifLoc_vScalar,scalerVector[0],scalerVector[1],scalerVector[2],scalerVector[3],);
-        
         gl.Uniform4f(unifLoc_vPan,panVector[0],panVector[1],panVector[2],panVector[3],);
+
         gl.DrawArrays(gl.TRIANGLES, 0, numTileTriangles);
         window.swapBuffers();
     }
 
     await mainloop(frame);
 }
+
+

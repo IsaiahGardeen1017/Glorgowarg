@@ -53,3 +53,11 @@ export function DefaultColor(): RGB{
         b: 50
     }
 }
+
+export function GrobberColor(): RGB{
+    return {
+        r: 200,
+        g: 150,
+        b: 200
+    }
+}
