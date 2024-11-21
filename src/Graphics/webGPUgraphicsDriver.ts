@@ -21,6 +21,8 @@ export async function startWebGpuWindow(game: GameState) {
         format: "bgra8unorm",
     });
 
+
+
     const shaderCode = `
     @vertex
     fn vs_main(@builtin(vertex_index) in_vertex_index: u32) -> @builtin(position) vec4<f32> {
@@ -59,7 +61,6 @@ export async function startWebGpuWindow(game: GameState) {
             ],
         },
     });
-
 
     mainloop(() => {
         const encoder = device.createCommandEncoder();
