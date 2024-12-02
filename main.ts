@@ -7,7 +7,7 @@ import { logTiming } from "./src/loggingFuncs.ts";
 import { GameState } from "./src/simulation/GameState.ts";
 
 const WIDTH = 200;
-const HEIGHT =100;
+const HEIGHT = 100;
 logTiming('Glorowarg Started');
 const gameState = new GameState(WIDTH, HEIGHT);
 logTiming('GameState set');

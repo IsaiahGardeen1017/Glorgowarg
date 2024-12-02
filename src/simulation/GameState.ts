@@ -1,6 +1,4 @@
-import { HexToRGB } from "../Graphics/colorUtils.ts";
-import { generateSquareCentered, Shape, shiftShape } from "../Graphics/shapeFunctions.ts";
-import { Creature, CreatureTypes } from "./Creatures/Creature.ts";
+import { HexToRGB } from "../Graphics/colorUtils.ts";import { Creature, CreatureTypes } from "./Creatures/Creature.ts";
 import { SimMap } from "./Map.ts";
 import { Grobber } from './Creatures/Grobber/Grobber.ts'
 import { getRandomInt } from "../utils/funcs.ts";
