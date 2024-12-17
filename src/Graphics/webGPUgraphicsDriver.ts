@@ -137,7 +137,7 @@ export async function startWebGpuWindow(game: GameState) {
         size: vertices.byteLength,
         usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
-    device.queue.writeBuffer(vertexBuffer, /*bufferOffset=*/ 0, vertices);
+    device.queue.writeBuffer(vertexBuffer, 0, vertices);
 
     const vertexBufferLayout: GPUVertexBufferLayout = {
         arrayStride: 28, //floats per stride * 4
