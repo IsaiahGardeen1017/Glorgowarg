@@ -7,23 +7,53 @@ import { RGB } from "./colorUtils.ts";
 import { getMapVertData } from "./shapeFunctions.ts";
 import { mapKeyToInputAction } from "./KeyMapping.ts";
 
-const simpleShader = await Deno.readTextFile("./src/Graphics/shaders/simple.wgsl");
-
+const simpleShader = await Deno.readTextFile(
+    "./src/Graphics/shaders/simple.wgsl",
+);
+const instanceShader = await Deno.readTextFile(
+    "./src/Graphics/shaders/instance.wgsl",
+);
 
 const spriteVertices = new Float32Array([
     // Positions    // Color (optional)
-    -0.5,  0.5, 1.5,    1.0, 1.0, 1.0, 1.0, 
-    -0.5, -0.5, 1.5,    1.0, 1.0, 1.0, 1.0,
-    0.5, -0.5, 1.5,     1.0, 1.0, 1.0, 1.0,
-    0.5,  0.5, 1.5,     1.0, 1.0, 1.0, 1.0,
+    -0.5,
+    0.5,
+    1.5,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    -0.5,
+    -0.5,
+    1.5,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    0.5,
+    -0.5,
+    1.5,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    0.5,
+    0.5,
+    1.5,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
 ]);
 
 const instanceData = new Float32Array([
-    0.0, 0.0,
-    2.0, 2.0,
-    10.0, 0.0
+    0.0,
+    0.0,
+    2.0,
+    2.0,
+    10.0,
+    0.0,
 ]);
-
 
 export async function startWebGpuWindow(game: GameState) {
     logTiming("Starting Web GPU Window");
@@ -116,7 +146,6 @@ export async function startWebGpuWindow(game: GameState) {
     logTiming("Input handling started");
     // ********************** ^^^ HANDLE INPUT ^^^ **************************************
 
-
     const numFloatsInUniform = 4;
     const uniformBufferSize = numFloatsInUniform * 4; // zoom is 2 32bit floats (4bytes each)
     const uniformBuffer = device.createBuffer({
@@ -130,14 +159,27 @@ export async function startWebGpuWindow(game: GameState) {
     uniformValues.set([zoomLevel, zoomLevel], uScalarOffset); // can probably delete
     uniformValues.set([panx, pany], uPanOffset); // can probably delete
 
-
     const vertices = getMapVertData(game);
-    const vertexBuffer = device.createBuffer({
+    const mapVertexBuffer = device.createBuffer({
         label: "Map Vertices",
         size: vertices.byteLength,
         usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
-    device.queue.writeBuffer(vertexBuffer, 0, vertices);
+    device.queue.writeBuffer(mapVertexBuffer, 0, vertices);
+
+    const spriteVertexBuffer = device.createBuffer({
+        label: "Map Vertices",
+        size: spriteVertices.byteLength,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+    device.queue.writeBuffer(spriteVertexBuffer, 0, spriteVertices);
+
+    const instanceBuffer = device.createBuffer({
+        label: "Instance Buffer",
+        size: instanceData.byteLength,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+    device.queue.writeBuffer(instanceBuffer, 0, instanceData);
 
     const vertexBufferLayout: GPUVertexBufferLayout = {
         arrayStride: 28, //floats per stride * 4
@@ -151,29 +193,12 @@ export async function startWebGpuWindow(game: GameState) {
             shaderLocation: 1, // Position, see vertex shader
         }],
     };
-
-    const instanceBuffer = device.createBuffer({
-        label: "Instance Buffer",
-        size: instanceData.byteLength,
-        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-    });
-    device.queue.writeBuffer(instanceBuffer, 0, instanceData);
-
-    const instanceBufferLayout: GPUVertexBufferLayout = {
-        arrayStride: 8, // 2 floats per instance (x, y, sx, sy, rotation)
-        stepMode: "instance", // Step per instance, not per vertex
-        attributes: [
-            { format: "float32x2", offset: 0, shaderLocation: 2 },  // Position (x, y) // 2 floats
-        ],
-    };
-
     const simpleShaderModule = device.createShaderModule({
-        label: "Normal shader",
+        label: "Simple shader",
         code: simpleShader,
     });
-
-    const pipeline = device.createRenderPipeline({
-        label: "Pipeline",
+    const simplePipeline = device.createRenderPipeline({
+        label: "Pipeline for static shapes",
         layout: "auto",
         vertex: {
             module: simpleShaderModule,
@@ -189,8 +214,36 @@ export async function startWebGpuWindow(game: GameState) {
         },
     });
 
+    const instanceBufferLayout: GPUVertexBufferLayout = {
+        arrayStride: 8, // 2 floats per instance (x, y, sx, sy, rotation)
+        stepMode: "instance", // Step per instance, not per vertex
+        attributes: [
+            { format: "float32x2", offset: 0, shaderLocation: 2 }, // Position (x, y) // 2 floats
+        ],
+    };
+    const instanceShaderModule = device.createShaderModule({
+        label: "Instance shader",
+        code: simpleShader,
+    });
+    const instancePipeline = device.createRenderPipeline({
+        label: "Sprite Pipeline",
+        layout: "auto",
+        vertex: {
+            module: instanceShaderModule, // Different shader for sprites
+            entryPoint: "vertexMain",
+            buffers: [vertexBufferLayout, instanceBufferLayout], // Includes instance data
+        },
+        fragment: {
+            module: instanceShaderModule,
+            entryPoint: "fragmentMain",
+            targets: [{
+                format: swapChainFormat,
+            }],
+        },
+    });
+
     const bindGroup = device.createBindGroup({
-        layout: pipeline.getBindGroupLayout(0),
+        layout: simplePipeline.getBindGroupLayout(0),
         entries: [
             { binding: 0, resource: { buffer: uniformBuffer } },
         ],
@@ -201,11 +254,10 @@ export async function startWebGpuWindow(game: GameState) {
     mainloop(() => {
         let clearColor = normalizeColor(DeepBlue());
 
-
-        if (panningDown) pany += (PAN_SPEED / zoomLevel);
-        if (panningUp) pany -= (PAN_SPEED / zoomLevel);
-        if (panningLeft) panx += (PAN_SPEED / zoomLevel);
-        if (panningRight) panx -= (PAN_SPEED / zoomLevel);
+        if (panningDown) pany += PAN_SPEED / zoomLevel;
+        if (panningUp) pany -= PAN_SPEED / zoomLevel;
+        if (panningLeft) panx += PAN_SPEED / zoomLevel;
+        if (panningRight) panx -= PAN_SPEED / zoomLevel;
 
         uniformValues.set([zoomLevel, zoomLevel * aspectRatio], uScalarOffset);
         uniformValues.set([panx, pany], uPanOffset);
@@ -218,14 +270,25 @@ export async function startWebGpuWindow(game: GameState) {
                     view: context.getCurrentTexture().createView(),
                     loadOp: "clear",
                     storeOp: "store",
-                    clearValue: { r: clearColor.r, g: clearColor.g, b: clearColor.b, a: 1 },
+                    clearValue: {
+                        r: clearColor.r,
+                        g: clearColor.g,
+                        b: clearColor.b,
+                        a: 1,
+                    },
                 },
             ],
         });
-        passEncoder.setPipeline(pipeline);
-        passEncoder.setVertexBuffer(0, vertexBuffer);
+        passEncoder.setPipeline(simplePipeline);
+        passEncoder.setVertexBuffer(0, mapVertexBuffer);
         passEncoder.setBindGroup(0, bindGroup);
         passEncoder.draw(vertices.length / 7);
+
+        passEncoder.setPipeline(instancePipeline);
+        passEncoder.setVertexBuffer(0, spriteVertexBuffer); // Sprite vertices
+        passEncoder.setVertexBuffer(1, instanceBuffer); // Instance data
+        passEncoder.draw(spriteVertices.length / 7, instanceData.length / 2); // Number of instances
+
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
         surface.present();
