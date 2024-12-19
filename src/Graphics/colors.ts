@@ -63,9 +63,3 @@ export function GrobberColor(): RGB{
 }
 
 
-export function normalizeColor(color: RGB): RGB{
-    color.r =  color.r / 255.0;
-    color.g = color.g / 255.0;
-    color.b = color.b / 255.0;
-    return color;
-}

@@ -1,9 +1,9 @@
 import { createWindow, mainloop } from "https://deno.land/x/dwm@0.3.7/mod.ts";
 import { GameState } from "../simulation/GameState.ts";
 import { logTiming } from "../loggingFuncs.ts";
-import { DeepBlue, normalizeColor } from "./colors.ts";
+import { DeepBlue } from "./colors.ts";
 import { normalize } from "https://deno.land/std@0.97.0/path/win32.ts";
-import { RGB } from "./colorUtils.ts";
+import { normalizeColor, RGB } from "./colorUtils.ts";
 import { getMapVertData } from "./shapeFunctions.ts";
 import { mapKeyToInputAction } from "./KeyMapping.ts";
 
@@ -20,39 +20,25 @@ const spriteVertices = new Float32Array([
     0.5,
     1.5,
     1.0,
+    0.0,
+    0.0,
     1.0,
-    1.0,
-    1.0,
+    
     -0.5,
     -0.5,
     1.5,
+    0.0,
     1.0,
+    0.0,
     1.0,
-    1.0,
-    1.0,
-    0.5,
-    -0.5,
-    1.5,
-    1.0,
-    1.0,
-    1.0,
-    1.0,
-    0.5,
-    0.5,
-    1.5,
-    1.0,
-    1.0,
-    1.0,
-    1.0,
-]);
 
-const instanceData = new Float32Array([
+    0.5,
+    -0.5,
+    1.5,
     0.0,
     0.0,
-    2.0,
-    2.0,
-    10.0,
-    0.0,
+    1.0,
+    1.0,
 ]);
 
 export async function startWebGpuWindow(game: GameState) {
@@ -174,13 +160,13 @@ export async function startWebGpuWindow(game: GameState) {
     });
     device.queue.writeBuffer(spriteVertexBuffer, 0, spriteVertices);
 
+    const maxCreatures = 10;
+    const instancesData = new Float32Array(maxCreatures * 2);
     const instanceBuffer = device.createBuffer({
         label: "Instance Buffer",
-        size: instanceData.byteLength,
+        size: maxCreatures * 8,
         usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
-    device.queue.writeBuffer(instanceBuffer, 0, instanceData);
-
     const vertexBufferLayout: GPUVertexBufferLayout = {
         arrayStride: 28, //floats per stride * 4
         attributes: [{
@@ -223,7 +209,7 @@ export async function startWebGpuWindow(game: GameState) {
     };
     const instanceShaderModule = device.createShaderModule({
         label: "Instance shader",
-        code: simpleShader,
+        code: instanceShader,
     });
     const instancePipeline = device.createRenderPipeline({
         label: "Sprite Pipeline",
@@ -242,8 +228,15 @@ export async function startWebGpuWindow(game: GameState) {
         },
     });
 
-    const bindGroup = device.createBindGroup({
+    const simpleBindGroup = device.createBindGroup({
         layout: simplePipeline.getBindGroupLayout(0),
+        entries: [
+            { binding: 0, resource: { buffer: uniformBuffer } },
+        ],
+    });
+
+    const instanceBindGroup = device.createBindGroup({
+        layout: instancePipeline.getBindGroupLayout(0),
         entries: [
             { binding: 0, resource: { buffer: uniformBuffer } },
         ],
@@ -252,6 +245,7 @@ export async function startWebGpuWindow(game: GameState) {
     logTiming("Buffers/Pipeline Set");
 
     mainloop(() => {
+        game.process();
         let clearColor = normalizeColor(DeepBlue());
 
         if (panningDown) pany += PAN_SPEED / zoomLevel;
@@ -262,6 +256,14 @@ export async function startWebGpuWindow(game: GameState) {
         uniformValues.set([zoomLevel, zoomLevel * aspectRatio], uScalarOffset);
         uniformValues.set([panx, pany], uPanOffset);
         device.queue.writeBuffer(uniformBuffer, 0, uniformValues);
+
+        const creaturesArray = game.creatures;
+        for(let i = 0; i < creaturesArray.length; i++){
+            const idx = i * 2;
+            instancesData[idx] = creaturesArray[i].x;
+            instancesData[idx + 1] = creaturesArray[i].y;
+        }
+        device.queue.writeBuffer(instanceBuffer, 0, instancesData);
 
         const commandEncoder = device.createCommandEncoder();
         const passEncoder = commandEncoder.beginRenderPass({
@@ -281,13 +283,14 @@ export async function startWebGpuWindow(game: GameState) {
         });
         passEncoder.setPipeline(simplePipeline);
         passEncoder.setVertexBuffer(0, mapVertexBuffer);
-        passEncoder.setBindGroup(0, bindGroup);
+        passEncoder.setBindGroup(0, simpleBindGroup);
         passEncoder.draw(vertices.length / 7);
 
         passEncoder.setPipeline(instancePipeline);
         passEncoder.setVertexBuffer(0, spriteVertexBuffer); // Sprite vertices
         passEncoder.setVertexBuffer(1, instanceBuffer); // Instance data
-        passEncoder.draw(spriteVertices.length / 7, instanceData.length / 2); // Number of instances
+        passEncoder.setBindGroup(0, instanceBindGroup);
+        passEncoder.draw(spriteVertices.length / 7, instancesData.length / 2); // Number of instances
 
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);

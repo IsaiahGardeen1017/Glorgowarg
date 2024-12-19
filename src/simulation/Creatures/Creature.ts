@@ -14,5 +14,5 @@ export abstract class Creature{
         this.type = type;
     }
 
-    process(){}
+    abstract process(): void;
 }

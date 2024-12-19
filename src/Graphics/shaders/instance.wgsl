@@ -20,9 +20,14 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertexMain(input: VertexInpu, instance: InstanceData) -> VertexOutput {
+fn vertexMain(input: VertexInput, instance: InstanceData) -> VertexOutput {
     var output: VertexOutput;
-    output.pos = vec4f((unfStruct.pan.x + input.pos.x + instance.x) * unfStruct.zoom.x, (unfStruct.pan.y + input.pos.y + instance.y) * unfStruct.zoom.y, input.pos.z, 1.0);
+    output.pos = vec4f(
+        (unfStruct.pan.x + input.pos.x + instance.instancePosition.x) * unfStruct.zoom.x,
+        (unfStruct.pan.y + input.pos.y + instance.instancePosition.y) * unfStruct.zoom.y,
+        input.pos.z,
+        1.0
+    );
     output.color = input.color;
     return output;
 }

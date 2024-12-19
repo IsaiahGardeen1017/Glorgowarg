@@ -1,10 +1,17 @@
 import { SHADER_TYPE } from "https://deno.land/x/gluten@0.1.3/api/gles23.2.ts";
-import { HexToRGB, RGB, rgb, RGBToGLRGB } from "./colorUtils.ts";
+import { HexToRGB, normalizeColor, RGB, rgb, RGBToGLRGB } from "./colorUtils.ts";
 import { GameState } from "../simulation/GameState.ts";
 import { Tile } from "../simulation/Tile.ts";
-import { DeepBlue, DefaultColor, GrassGreen, GrobberColor, normalizeColor, SpawnColor, SteppeGreen, WaterBlue } from "./colors.ts";
+import {
+    DeepBlue,
+    DefaultColor,
+    GrassGreen,
+    GrobberColor,
+    SpawnColor,
+    SteppeGreen,
+    WaterBlue,
+} from "./colors.ts";
 import { Creature } from "../simulation/Creatures/Creature.ts";
-
 
 //Gets array of Shapes from GameState
 export function getMapVertData(gameState: GameState): Float32Array {
@@ -19,7 +26,7 @@ export function getMapVertData(gameState: GameState): Float32Array {
     let i = 0;
     gameState.map.forEachTile((tile) => {
         let tileArr = getVertDataFromTile(tile);
-        tileArr.forEach(t => {
+        tileArr.forEach((t) => {
             retArr[i] = t;
             i++;
         });
@@ -27,7 +34,6 @@ export function getMapVertData(gameState: GameState): Float32Array {
 
     return retArr;
 }
-
 
 function getVertDataFromTile(tile: Tile) {
     let color;
@@ -53,32 +59,68 @@ function getVertDataFromTile(tile: Tile) {
     return generateSquareCentered(color, 0.5, tile.x, tile.y, 1.0);
 }
 
-
-
 export function generateSquareCentered(
     color: RGB,
     radius: number,
     x: number = 0.0,
     y: number = 0.0,
     z: number = 0.0,
-): number[]{
+): number[] {
     const arr: number[] = [];
 
     normalizeColor(color);
 
     arr.push(x + radius, y + radius, z);
-    arr.push(color.r);arr.push(color.g);arr.push(color.b);arr.push(1.0);
+    pushColorToArr(color, arr);
+    arr.push(1.0);
     arr.push(x + radius, y - radius, z);
-    arr.push(color.r);arr.push(color.g);arr.push(color.b);arr.push(1.0);
+    pushColorToArr(color, arr);
+    arr.push(1.0);
     arr.push(x - radius, y - radius, z);
-    arr.push(color.r);arr.push(color.g);arr.push(color.b);arr.push(1.0);
-    
+    pushColorToArr(color, arr);
+    arr.push(1.0);
+
     arr.push(x + radius, y + radius, z);
-    arr.push(color.r);arr.push(color.g);arr.push(color.b);arr.push(1.0);
+    pushColorToArr(color, arr);
+    arr.push(1.0);
     arr.push(x - radius, y - radius, z);
-    arr.push(color.r);arr.push(color.g);arr.push(color.b);arr.push(1.0);
+    pushColorToArr(color, arr);
+    arr.push(1.0);
     arr.push(x - radius, y + radius, z);
-    arr.push(color.r);arr.push(color.g);arr.push(color.b);arr.push(1.0);
+    pushColorToArr(color, arr);
+    arr.push(1.0);
 
     return arr;
+}
+
+export function generateCircleCentered(
+    color: RGB,
+    radius: number,
+    slices: number,
+    x: number = 0.0,
+    y: number = 0.0,
+    z: number = 0.0,
+): number[] {
+    let arr = [];
+    arr.push(1);
+    
+    const sliceSizeInRadians = 2 / slices;
+    for(let i = 0; i < slices; i++){
+        arr.push(x, y, z);
+        const x1 = Math.sin((sliceSizeInRadians * i));
+        const y1 = Math.cos((sliceSizeInRadians * i));
+        const x2 = Math.sin((sliceSizeInRadians * (i + 1)));
+        const y2 = Math.cos((sliceSizeInRadians * (i + 1)));
+        arr.push(x1, y1);
+        pushColorToArr(color, arr);
+        arr.push(x2, y2);
+        pushColorToArr(color, arr);
+    }
+    return arr;
+}
+
+function pushColorToArr(c: RGB, arr: number[]) {
+    arr.push(c.r);
+    arr.push(c.g);
+    arr.push(c.b);
 }
