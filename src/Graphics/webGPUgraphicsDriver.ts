@@ -1,11 +1,11 @@
 import { createWindow, mainloop } from "https://deno.land/x/dwm@0.3.7/mod.ts";
 import { GameState } from "../simulation/GameState.ts";
 import { logTiming } from "../loggingFuncs.ts";
-import { DeepBlue } from "./colors.ts";
+import { DeepBlue, normalizeColor } from "./colors.ts";
 import { normalize } from "https://deno.land/std@0.97.0/path/win32.ts";
-import { normalizeColor, RGB } from "./colorUtils.ts";
-import { getMapVertData } from "./shapeFunctions.ts";
+import { generateCircleCentered, getMapVertData } from "./shapeFunctions.ts";
 import { mapKeyToInputAction } from "./KeyMapping.ts";
+import { RenderDataObject } from "./RenderDataObject.ts";
 
 const simpleShader = await Deno.readTextFile(
     "./src/Graphics/shaders/simple.wgsl",
@@ -14,53 +14,31 @@ const instanceShader = await Deno.readTextFile(
     "./src/Graphics/shaders/instance.wgsl",
 );
 
-const spriteVertices = new Float32Array([
-    // Positions    // Color (optional)
-    -0.5,
-    0.5,
-    1.5,
-    1.0,
-    0.0,
-    0.0,
-    1.0,
-    
-    -0.5,
-    -0.5,
-    1.5,
-    0.0,
-    1.0,
-    0.0,
-    1.0,
 
-    0.5,
-    -0.5,
-    1.5,
-    0.0,
-    0.0,
-    1.0,
-    1.0,
-]);
 
-export async function startWebGpuWindow(game: GameState) {
+
+export async function startWebGpuWindow(rdo: RenderDataObject) {
     logTiming("Starting Web GPU Window");
     const adapter = await navigator.gpu.requestAdapter();
     const device = await adapter!.requestDevice();
-
+    
     const window = createWindow({
         title: "Deno Window Manager",
         width: 1920,
         height: 1080,
         resizable: true,
     });
-
+    
     const { width, height } = window.framebufferSize;
-
+    
     const aspectRatio = width / height; //Usually less than 1
     const maxZoom = 1.5;
     const minZoom = 0.0005;
-
+    
     const surface = window.windowSurface();
     const context = surface.getContext("webgpu");
+
+    const spriteVertices = rdo.getGrobberSpriteVertices();
 
     const swapChainFormat = "bgra8unorm";
     context.configure({
@@ -73,8 +51,8 @@ export async function startWebGpuWindow(game: GameState) {
     //Handle input
 
     const ZOOM_SPEED = 0.1;
-    let panx = 0 - Math.floor(game.map.xSize / 2);
-    let pany = 0 - Math.floor(game.map.ySize / 2);
+    let panx = 0 - Math.floor(rdo.xSize / 2);
+    let pany = 0 - Math.floor(rdo.ySize / 2);
     let zoomLevel = 1.4;
     addEventListener("scroll", (evt) => {
         const scrollValue = evt.scrollY; // 1 or -1
@@ -145,7 +123,7 @@ export async function startWebGpuWindow(game: GameState) {
     uniformValues.set([zoomLevel, zoomLevel], uScalarOffset); // can probably delete
     uniformValues.set([panx, pany], uPanOffset); // can probably delete
 
-    const vertices = getMapVertData(game);
+    const vertices = getMapVertData(rdo.gameState);
     const mapVertexBuffer = device.createBuffer({
         label: "Map Vertices",
         size: vertices.byteLength,
@@ -160,7 +138,7 @@ export async function startWebGpuWindow(game: GameState) {
     });
     device.queue.writeBuffer(spriteVertexBuffer, 0, spriteVertices);
 
-    const maxCreatures = 10;
+    const maxCreatures = 1000;
     const instancesData = new Float32Array(maxCreatures * 2);
     const instanceBuffer = device.createBuffer({
         label: "Instance Buffer",
@@ -244,9 +222,25 @@ export async function startWebGpuWindow(game: GameState) {
 
     logTiming("Buffers/Pipeline Set");
 
+    let frameCount = 0;
+    let fpsCounterTotal = 0;
+    let lastFtime = 0;
+    const FPS_SMAPLE_RATE = 200;
     mainloop(() => {
-        game.process();
-        let clearColor = normalizeColor(DeepBlue());
+        frameCount++;
+        let fTime = Date.now();
+        let frameLength = fTime - lastFtime;
+        fpsCounterTotal += frameLength;
+        lastFtime = fTime;
+        if (frameCount % FPS_SMAPLE_RATE === 0) {
+            const fps = FPS_SMAPLE_RATE / (fpsCounterTotal / 1000);
+            console.log(fps);
+            fpsCounterTotal = 0;
+        }
+
+        //Get Rid Of This
+        rdo.gameState.process();
+        
 
         if (panningDown) pany += PAN_SPEED / zoomLevel;
         if (panningUp) pany -= PAN_SPEED / zoomLevel;
@@ -257,8 +251,8 @@ export async function startWebGpuWindow(game: GameState) {
         uniformValues.set([panx, pany], uPanOffset);
         device.queue.writeBuffer(uniformBuffer, 0, uniformValues);
 
-        const creaturesArray = game.creatures;
-        for(let i = 0; i < creaturesArray.length; i++){
+        const creaturesArray = rdo.gameState.creatures;
+        for (let i = 0; i < creaturesArray.length; i++) {
             const idx = i * 2;
             instancesData[idx] = creaturesArray[i].x;
             instancesData[idx + 1] = creaturesArray[i].y;
@@ -266,6 +260,7 @@ export async function startWebGpuWindow(game: GameState) {
         device.queue.writeBuffer(instanceBuffer, 0, instancesData);
 
         const commandEncoder = device.createCommandEncoder();
+        let clearColor = normalizeColor(DeepBlue());
         const passEncoder = commandEncoder.beginRenderPass({
             colorAttachments: [
                 {
@@ -273,9 +268,9 @@ export async function startWebGpuWindow(game: GameState) {
                     loadOp: "clear",
                     storeOp: "store",
                     clearValue: {
-                        r: clearColor.r,
-                        g: clearColor.g,
-                        b: clearColor.b,
+                        r: clearColor[0],
+                        g: clearColor[1],
+                        b: clearColor[2],
                         a: 1,
                     },
                 },

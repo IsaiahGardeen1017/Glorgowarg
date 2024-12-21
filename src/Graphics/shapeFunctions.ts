@@ -1,5 +1,4 @@
 import { SHADER_TYPE } from "https://deno.land/x/gluten@0.1.3/api/gles23.2.ts";
-import { HexToRGB, normalizeColor, RGB, rgb, RGBToGLRGB } from "./colorUtils.ts";
 import { GameState } from "../simulation/GameState.ts";
 import { Tile } from "../simulation/Tile.ts";
 import {
@@ -7,6 +6,7 @@ import {
     DefaultColor,
     GrassGreen,
     GrobberColor,
+    normalizeColor,
     SpawnColor,
     SteppeGreen,
     WaterBlue,
@@ -60,7 +60,7 @@ function getVertDataFromTile(tile: Tile) {
 }
 
 export function generateSquareCentered(
-    color: RGB,
+    color: number[],
     radius: number,
     x: number = 0.0,
     y: number = 0.0,
@@ -94,33 +94,53 @@ export function generateSquareCentered(
 }
 
 export function generateCircleCentered(
-    color: RGB,
+    color: number[],
     radius: number,
     slices: number,
     x: number = 0.0,
     y: number = 0.0,
     z: number = 0.0,
-): number[] {
-    let arr = [];
-    arr.push(1);
-    
-    const sliceSizeInRadians = 2 / slices;
-    for(let i = 0; i < slices; i++){
-        arr.push(x, y, z);
-        const x1 = Math.sin((sliceSizeInRadians * i));
-        const y1 = Math.cos((sliceSizeInRadians * i));
-        const x2 = Math.sin((sliceSizeInRadians * (i + 1)));
-        const y2 = Math.cos((sliceSizeInRadians * (i + 1)));
-        arr.push(x1, y1);
-        pushColorToArr(color, arr);
-        arr.push(x2, y2);
-        pushColorToArr(color, arr);
+): Float32Array {
+
+    const arrSize = slices * 3 * 7;
+    const retArr = new Float32Array(arrSize);
+    let arrIndex = 0;
+
+    const fpush = (value: number) => {
+        retArr[arrIndex] = value;
+        arrIndex++;
+    };
+    const cpush = () => {
+        fpush(color[0]);
+        fpush(color[1]);
+        fpush(color[2]);
+        fpush(1.0);
     }
-    return arr;
+
+    const sliceSizeInRadians = (Math.PI * 2)  / slices;
+    for (let i = 0; i < slices; i++) {
+        fpush(x);
+        fpush(y);
+        fpush(z);
+        cpush();
+        const x1 = Math.sin(sliceSizeInRadians * i) * radius;
+        const y1 = Math.cos(sliceSizeInRadians * i) * radius;
+        fpush(x1);
+        fpush(y1);
+        fpush(z);
+        cpush();
+        const x2 = Math.sin(sliceSizeInRadians * (i + 1)) * radius;
+        const y2 = Math.cos(sliceSizeInRadians * (i + 1)) * radius;
+        fpush(x2);
+        fpush(y2);
+        fpush(z);
+        cpush();
+    }
+    return retArr;
 }
 
-function pushColorToArr(c: RGB, arr: number[]) {
-    arr.push(c.r);
-    arr.push(c.g);
-    arr.push(c.b);
+function pushColorToArr(c: number[], arr: number[]) {
+    arr.push(c[0]);
+    arr.push(c[1]);
+    arr.push(c[2]);
 }

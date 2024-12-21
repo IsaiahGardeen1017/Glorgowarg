@@ -9,7 +9,7 @@ export class Grobber extends Creature {
     }
 
     process(): void {
-        const r = getRandomInt(3);
+        const r = getRandomInt(4);
         switch (r) {
             case 0:
                 this.x += MOVE_DEF;

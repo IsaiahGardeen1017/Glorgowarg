@@ -3,6 +3,11 @@ export function getRandomInt(max: number) {
     return Math.floor(Math.random() * max);
 }
 
+export function getRandomIntRange(min: number, max: number){
+    const range = max - min;
+    return getRandomInt(range) + min;
+}
+
 export function maybeDo(percentChance: number): boolean{
     if(percentChance < 0){
         return false;
