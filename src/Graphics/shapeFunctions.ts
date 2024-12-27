@@ -139,6 +139,70 @@ export function generateCircleCentered(
     return retArr;
 }
 
+export function generateStarCentered(
+    color: number[],
+    pointRadius: number,
+    inRadius: number,
+    slices: number,
+    x: number = 0.0,
+    y: number = 0.0,
+    z: number = 0.0,
+): Float32Array {
+
+    const arrSize = slices * 3 * 7 * 2;
+    const retArr = new Float32Array(arrSize);
+    let arrIndex = 0;
+
+    const fpush = (value: number) => {
+        retArr[arrIndex] = value;
+        arrIndex++;
+    };
+    const cpush = () => {
+        fpush(color[0]);
+        fpush(color[1]);
+        fpush(color[2]);
+        fpush(1.0);
+    }
+
+    const sliceSizeInRadians = (Math.PI * 2)  / slices;
+    for (let i = 0; i < slices; i++) {
+        //Inner Circle
+        fpush(x);
+        fpush(y);
+        fpush(z);
+        cpush();
+        const x1 = Math.sin(sliceSizeInRadians * i) * inRadius;
+        const y1 = Math.cos(sliceSizeInRadians * i) * inRadius;
+        fpush(x1);
+        fpush(y1);
+        fpush(z);
+        cpush();
+        const x2 = Math.sin(sliceSizeInRadians * (i + 1)) * inRadius;
+        const y2 = Math.cos(sliceSizeInRadians * (i + 1)) * inRadius;
+        fpush(x2);
+        fpush(y2);
+        fpush(z);
+        cpush();
+
+        //Spike
+        fpush(x2);
+        fpush(y2);
+        fpush(z);
+        cpush();
+        fpush(x1);
+        fpush(y1);
+        fpush(z);
+        cpush();
+        const x3 = Math.sin(sliceSizeInRadians * (i + 1)) * pointRadius;
+        const y3 = Math.cos(sliceSizeInRadians * (i + 1)) * pointRadius;
+        fpush(x3);
+        fpush(y3);
+        fpush(z);
+        cpush();
+    }
+    return retArr;
+}
+
 function pushColorToArr(c: number[], arr: number[]) {
     arr.push(c[0]);
     arr.push(c[1]);

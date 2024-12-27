@@ -12,6 +12,7 @@ struct VertexInput {
 
 struct InstanceData {
     @location(2) instancePosition: vec2<f32>, // Position for the instance
+    @location(3) instanceScale: vec2<f32>,     // Scale for the instance (added)
 };
     
 struct VertexOutput {
@@ -23,8 +24,8 @@ struct VertexOutput {
 fn vertexMain(input: VertexInput, instance: InstanceData) -> VertexOutput {
     var output: VertexOutput;
     output.pos = vec4f(
-        (unfStruct.pan.x + input.pos.x + instance.instancePosition.x) * unfStruct.zoom.x,
-        (unfStruct.pan.y + input.pos.y + instance.instancePosition.y) * unfStruct.zoom.y,
+        (unfStruct.pan.x + (input.pos.x * instance.instanceScale.x) + instance.instancePosition.x ) * unfStruct.zoom.x,
+        (unfStruct.pan.y + (input.pos.y * instance.instanceScale.y) + instance.instancePosition.y) * unfStruct.zoom.y,
         input.pos.z,
         1.0
     );

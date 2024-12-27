@@ -1,11 +1,13 @@
 import { createWindow, mainloop } from "https://deno.land/x/dwm@0.3.7/mod.ts";
 import { GameState } from "../simulation/GameState.ts";
 import { logTiming } from "../loggingFuncs.ts";
-import { DeepBlue, normalizeColor } from "./colors.ts";
+import { DeepBlue, GrobberColor, normalizeColor } from "./colors.ts";
 import { normalize } from "https://deno.land/std@0.97.0/path/win32.ts";
-import { generateCircleCentered, getMapVertData } from "./shapeFunctions.ts";
+import { generateCircleCentered, generateStarCentered, getMapVertData } from "./shapeFunctions.ts";
 import { mapKeyToInputAction } from "./KeyMapping.ts";
-import { RenderDataObject } from "./RenderDataObject.ts";
+import { getGreeplantInstanceData, getGrobberInstanceData } from "./creatureSpecific/grobber.ts";
+import { play } from "https://deno.land/x/audio@0.2.0/mod.ts";
+import { existsSync } from "https://deno.land/std@0.157.0/fs/mod.ts";
 
 const simpleShader = await Deno.readTextFile(
     "./src/Graphics/shaders/simple.wgsl",
@@ -17,7 +19,7 @@ const instanceShader = await Deno.readTextFile(
 
 
 
-export async function startWebGpuWindow(rdo: RenderDataObject) {
+export async function startWebGpuWindow(gameState:GameState) {
     logTiming("Starting Web GPU Window");
     const adapter = await navigator.gpu.requestAdapter();
     const device = await adapter!.requestDevice();
@@ -38,7 +40,10 @@ export async function startWebGpuWindow(rdo: RenderDataObject) {
     const surface = window.windowSurface();
     const context = surface.getContext("webgpu");
 
-    const spriteVertices = rdo.getGrobberSpriteVertices();
+    //Grobber
+    const spriteVertices = generateStarCentered(
+        GrobberColor(),0.5,0.25,8,0,0,1.5,
+    );
 
     const swapChainFormat = "bgra8unorm";
     context.configure({
@@ -51,9 +56,9 @@ export async function startWebGpuWindow(rdo: RenderDataObject) {
     //Handle input
 
     const ZOOM_SPEED = 0.1;
-    let panx = 0 - Math.floor(rdo.xSize / 2);
-    let pany = 0 - Math.floor(rdo.ySize / 2);
-    let zoomLevel = 1.4;
+    let panx = 0 - Math.floor(gameState.xSize / 2);
+    let pany = 0 - Math.floor(gameState.ySize / 2);
+    let zoomLevel = 0.014;
     addEventListener("scroll", (evt) => {
         const scrollValue = evt.scrollY; // 1 or -1
         const zoomDelta = zoomLevel * ZOOM_SPEED * scrollValue;
@@ -123,7 +128,7 @@ export async function startWebGpuWindow(rdo: RenderDataObject) {
     uniformValues.set([zoomLevel, zoomLevel], uScalarOffset); // can probably delete
     uniformValues.set([panx, pany], uPanOffset); // can probably delete
 
-    const vertices = getMapVertData(rdo.gameState);
+    const vertices = getMapVertData(gameState);
     const mapVertexBuffer = device.createBuffer({
         label: "Map Vertices",
         size: vertices.byteLength,
@@ -132,14 +137,13 @@ export async function startWebGpuWindow(rdo: RenderDataObject) {
     device.queue.writeBuffer(mapVertexBuffer, 0, vertices);
 
     const spriteVertexBuffer = device.createBuffer({
-        label: "Map Vertices",
+        label: "Instance Vertices",
         size: spriteVertices.byteLength,
         usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
     device.queue.writeBuffer(spriteVertexBuffer, 0, spriteVertices);
 
     const maxCreatures = 1000;
-    const instancesData = new Float32Array(maxCreatures * 2);
     const instanceBuffer = device.createBuffer({
         label: "Instance Buffer",
         size: maxCreatures * 8,
@@ -179,10 +183,11 @@ export async function startWebGpuWindow(rdo: RenderDataObject) {
     });
 
     const instanceBufferLayout: GPUVertexBufferLayout = {
-        arrayStride: 8, // 2 floats per instance (x, y, sx, sy, rotation)
+        arrayStride: 16, // 4 floats per instance 
         stepMode: "instance", // Step per instance, not per vertex
         attributes: [
             { format: "float32x2", offset: 0, shaderLocation: 2 }, // Position (x, y) // 2 floats
+            { format: "float32x2", offset: 8, shaderLocation: 3 }, // Scale (x, y) // 2 floats
         ],
     };
     const instanceShaderModule = device.createShaderModule({
@@ -226,22 +231,26 @@ export async function startWebGpuWindow(rdo: RenderDataObject) {
     let fpsCounterTotal = 0;
     let lastFtime = 0;
     const FPS_SMAPLE_RATE = 200;
+
+    const simTimeGap = 1000 / 20;
+    let lastSimTime = Date.now();
     mainloop(() => {
         frameCount++;
         let fTime = Date.now();
         let frameLength = fTime - lastFtime;
         fpsCounterTotal += frameLength;
-        lastFtime = fTime;
         if (frameCount % FPS_SMAPLE_RATE === 0) {
             const fps = FPS_SMAPLE_RATE / (fpsCounterTotal / 1000);
             console.log(fps);
             fpsCounterTotal = 0;
         }
+        lastFtime = fTime;
 
-        //Get Rid Of This
-        rdo.gameState.process();
-        
-
+        if(fTime - lastSimTime >= simTimeGap){
+            lastSimTime = fTime;
+            gameState.process();
+        }
+      
         if (panningDown) pany += PAN_SPEED / zoomLevel;
         if (panningUp) pany -= PAN_SPEED / zoomLevel;
         if (panningLeft) panx += PAN_SPEED / zoomLevel;
@@ -251,12 +260,9 @@ export async function startWebGpuWindow(rdo: RenderDataObject) {
         uniformValues.set([panx, pany], uPanOffset);
         device.queue.writeBuffer(uniformBuffer, 0, uniformValues);
 
-        const creaturesArray = rdo.gameState.creatures;
-        for (let i = 0; i < creaturesArray.length; i++) {
-            const idx = i * 2;
-            instancesData[idx] = creaturesArray[i].x;
-            instancesData[idx + 1] = creaturesArray[i].y;
-        }
+
+//        const instancesData = getGrobberInstanceData(gameState);
+        const instancesData = getGreeplantInstanceData(gameState);
         device.queue.writeBuffer(instanceBuffer, 0, instancesData);
 
         const commandEncoder = device.createCommandEncoder();

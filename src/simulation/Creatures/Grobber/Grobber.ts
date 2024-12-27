@@ -1,7 +1,7 @@
 import { getRandomInt } from "../../../utils/funcs.ts";
 import { Creature } from "../Creature.ts";
 
-const MOVE_DEF = 0.01;
+const MOVE_DEF = 0.05;
 
 export class Grobber extends Creature {
     constructor(x: number, y: number) {

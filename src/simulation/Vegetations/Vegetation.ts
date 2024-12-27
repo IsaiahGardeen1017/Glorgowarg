@@ -1,16 +1,22 @@
-export type VegetationTypes = 'grass'
+import { GameState } from "../GameState.ts";
+
+export type VegetationTypes = 'greeplant'
 
 
 
-export class Vegetation{
+export abstract class Vegetation{
+    gameStateRef: GameState,
     x: number;
     y: number;
 
-    skin: VegetationTypes;
+    type: VegetationTypes;
 
-    constructor(x: number, y: number){
+    constructor(gameStateRef: GameState, x: number, y: number){
         this.x = x;
         this.y = y;
-        this.skin = 'grass';
+        this.gameStateRef = gameStateRef;
+        this.type = 'greeplant';
     }
+
+    abstract process(): void;
 }

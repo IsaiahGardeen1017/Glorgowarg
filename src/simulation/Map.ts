@@ -57,14 +57,6 @@ export class SimMap{
             }
         }
     }
-
-    process(): void{
-        this.forEachTile((tile: Tile) => {this.processTile(tile)})
-    }
-
-    processTile(tile: Tile): void{
-
-    }
 }
 
 //Keep between 0 and 1
