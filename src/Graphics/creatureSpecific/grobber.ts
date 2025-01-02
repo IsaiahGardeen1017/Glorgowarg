@@ -25,7 +25,7 @@ export function getGreeplantInstanceData(gameState: GameState): Float32Array{
         const idx = i * 4;
         f32[idx] = r[i].x;
         f32[idx + 1] = r[i].y;
-        const growthScale = r[i].growthStage / 10.1 * 1.5;
+        const growthScale = r[i].growthStage / 10;
         f32[idx + 2] = growthScale;
         f32[idx + 3] = growthScale;
     }

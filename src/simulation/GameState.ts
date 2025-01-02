@@ -31,8 +31,10 @@ export class GameState {
         this.ySize = ySize;
         logTiming('Map generated');
 
-        this.creatures = generateInitialCreatures(xSize, ySize, defCreVegOpts);
-        this.vegetations = generateInitialVegetations(this, xSize, ySize, defCreVegOpts);
+        this.creatures = {'grobber': []};
+        this.vegetations = {'greeplant': []};
+        generateInitialCreatures(xSize, ySize, defCreVegOpts);
+        generateInitialVegetations(this, xSize, ySize, defCreVegOpts);
         logTiming('Creatures generated');
     }
 

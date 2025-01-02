@@ -1,7 +1,7 @@
 import { createWindow, mainloop } from "https://deno.land/x/dwm@0.3.7/mod.ts";
 import { GameState } from "../simulation/GameState.ts";
 import { logTiming } from "../loggingFuncs.ts";
-import { DeepBlue, GrobberColor, normalizeColor } from "./colors.ts";
+import { DeepBlue, GreeplantColor, GrobberColor, normalizeColor } from "./colors.ts";
 import { normalize } from "https://deno.land/std@0.97.0/path/win32.ts";
 import { generateCircleCentered, generateStarCentered, getMapVertData } from "./shapeFunctions.ts";
 import { mapKeyToInputAction } from "./KeyMapping.ts";
@@ -42,7 +42,11 @@ export async function startWebGpuWindow(gameState:GameState) {
 
     //Grobber
     const spriteVertices = generateStarCentered(
-        GrobberColor(),0.5,0.25,8,0,0,1.5,
+        normalizeColor(GreeplantColor()),
+        0.5,
+        0.25,
+        8,
+        0,0,1.1,
     );
 
     const swapChainFormat = "bgra8unorm";
@@ -143,7 +147,7 @@ export async function startWebGpuWindow(gameState:GameState) {
     });
     device.queue.writeBuffer(spriteVertexBuffer, 0, spriteVertices);
 
-    const maxCreatures = 1000;
+    const maxCreatures = 1000000;
     const instanceBuffer = device.createBuffer({
         label: "Instance Buffer",
         size: maxCreatures * 8,

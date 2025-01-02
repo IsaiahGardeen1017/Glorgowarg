@@ -66,3 +66,11 @@ export function GrobberColor(): number[] {
         130,
     ];
 }
+
+export function GreeplantColor(): number[] {
+    return [
+        30,
+        130,
+        60
+    ]
+}
