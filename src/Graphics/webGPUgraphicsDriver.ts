@@ -6,20 +6,19 @@ import { normalize } from "https://deno.land/std@0.97.0/path/win32.ts";
 import { generateCircleCentered, generateStarCentered, getMapVertData } from "./shapeFunctions.ts";
 import { mapKeyToInputAction } from "./KeyMapping.ts";
 import { getGreeplantInstanceData, getGrobberInstanceData } from "./creatureSpecific/grobber.ts";
-import { play } from "https://deno.land/x/audio@0.2.0/mod.ts";
 import { existsSync } from "https://deno.land/std@0.157.0/fs/mod.ts";
 
 const simpleShader = await Deno.readTextFile(
     "./src/Graphics/shaders/simple.wgsl",
 );
-const instanceShader = await Deno.readTextFile(
+const greeplantShader = await Deno.readTextFile(
     "./src/Graphics/shaders/instance.wgsl",
 );
 
 
 
 
-export async function startWebGpuWindow(gameState:GameState) {
+ export async function startWebGpuWindow(gameState:GameState) {
     logTiming("Starting Web GPU Window");
     const adapter = await navigator.gpu.requestAdapter();
     const device = await adapter!.requestDevice();
@@ -141,16 +140,16 @@ export async function startWebGpuWindow(gameState:GameState) {
     device.queue.writeBuffer(mapVertexBuffer, 0, vertices);
 
     const spriteVertexBuffer = device.createBuffer({
-        label: "Instance Vertices",
+        label: "Greeplant Vertices",
         size: spriteVertices.byteLength,
         usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
     device.queue.writeBuffer(spriteVertexBuffer, 0, spriteVertices);
 
-    const maxCreatures = 1000000;
-    const instanceBuffer = device.createBuffer({
-        label: "Instance Buffer",
-        size: maxCreatures * 8,
+    const maxGreeplants = 1000000;
+    const greeplantBuffer = device.createBuffer({
+        label: "Greeplant Buffer",
+        size: maxGreeplants * 8,
         usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
     const vertexBufferLayout: GPUVertexBufferLayout = {
@@ -186,7 +185,7 @@ export async function startWebGpuWindow(gameState:GameState) {
         },
     });
 
-    const instanceBufferLayout: GPUVertexBufferLayout = {
+    const greeplantBufferLayout: GPUVertexBufferLayout = {
         arrayStride: 16, // 4 floats per instance 
         stepMode: "instance", // Step per instance, not per vertex
         attributes: [
@@ -194,20 +193,20 @@ export async function startWebGpuWindow(gameState:GameState) {
             { format: "float32x2", offset: 8, shaderLocation: 3 }, // Scale (x, y) // 2 floats
         ],
     };
-    const instanceShaderModule = device.createShaderModule({
-        label: "Instance shader",
-        code: instanceShader,
+    const greeplantShaderModule = device.createShaderModule({
+        label: "Greeplant shader",
+        code: greeplantShader,
     });
-    const instancePipeline = device.createRenderPipeline({
+    const greeplantPipeline = device.createRenderPipeline({
         label: "Sprite Pipeline",
         layout: "auto",
         vertex: {
-            module: instanceShaderModule, // Different shader for sprites
+            module: greeplantShaderModule, // Different shader for sprites
             entryPoint: "vertexMain",
-            buffers: [vertexBufferLayout, instanceBufferLayout], // Includes instance data
+            buffers: [vertexBufferLayout, greeplantBufferLayout], // Includes instance data
         },
         fragment: {
-            module: instanceShaderModule,
+            module: greeplantShaderModule,
             entryPoint: "fragmentMain",
             targets: [{
                 format: swapChainFormat,
@@ -223,7 +222,7 @@ export async function startWebGpuWindow(gameState:GameState) {
     });
 
     const instanceBindGroup = device.createBindGroup({
-        layout: instancePipeline.getBindGroupLayout(0),
+        layout: greeplantPipeline.getBindGroupLayout(0),
         entries: [
             { binding: 0, resource: { buffer: uniformBuffer } },
         ],
@@ -267,7 +266,7 @@ export async function startWebGpuWindow(gameState:GameState) {
 
 //        const instancesData = getGrobberInstanceData(gameState);
         const instancesData = getGreeplantInstanceData(gameState);
-        device.queue.writeBuffer(instanceBuffer, 0, instancesData);
+        device.queue.writeBuffer(greeplantBuffer, 0, instancesData);
 
         const commandEncoder = device.createCommandEncoder();
         let clearColor = normalizeColor(DeepBlue());
@@ -291,9 +290,9 @@ export async function startWebGpuWindow(gameState:GameState) {
         passEncoder.setBindGroup(0, simpleBindGroup);
         passEncoder.draw(vertices.length / 7);
 
-        passEncoder.setPipeline(instancePipeline);
+        passEncoder.setPipeline(greeplantPipeline);
         passEncoder.setVertexBuffer(0, spriteVertexBuffer); // Sprite vertices
-        passEncoder.setVertexBuffer(1, instanceBuffer); // Instance data
+        passEncoder.setVertexBuffer(1, greeplantBuffer); // Instance data
         passEncoder.setBindGroup(0, instanceBindGroup);
         passEncoder.draw(spriteVertices.length / 7, instancesData.length / 2); // Number of instances
 
