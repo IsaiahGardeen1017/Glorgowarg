@@ -74,3 +74,11 @@ export function GreeplantColor(): number[] {
         60
     ]
 }
+
+export function RedishColor(): number[] {
+    return [
+        130,
+        30,
+        60
+    ]
+}
