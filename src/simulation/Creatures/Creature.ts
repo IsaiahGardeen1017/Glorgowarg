@@ -1,18 +1,24 @@
-export type CreatureTypes = 'Grobber'
+import { GameState } from '../GameState.ts';
 
+export type CreatureTypes = 'grobber';
 
+export abstract class Creature {
+	gameStateRef: GameState;
+	x: number;
+	y: number;
 
-export abstract class Creature{
-    x: number;
-    y: number;
+	type: CreatureTypes;
 
-    type: CreatureTypes;
+	constructor(gameStateRef: GameState, x: number, y: number, type: CreatureTypes) {
+		this.x = x;
+		this.y = y;
+		this.type = type;
 
-    constructor(x: number, y: number, type: CreatureTypes){
-        this.x = x;
-        this.y = y;
-        this.type = type;
-    }
+		this.gameStateRef = gameStateRef;
+		this.type = type;
 
-    abstract process(): void;
+		this.gameStateRef.creatures[this.type].push(this);
+	}
+
+	abstract process(): void;
 }

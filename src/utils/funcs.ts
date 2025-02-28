@@ -1,24 +1,28 @@
 //If Max is three then possible returns are [0, 1, 2]
 export function getRandomInt(max: number) {
-    return Math.floor(Math.random() * max);
+	return Math.floor(Math.random() * max);
 }
 
-export function getRandomIntRange(min: number, max: number){
-    const range = max - min;
-    return getRandomInt(range) + min;
+export function getRandomIntRange(min: number, max: number) {
+	const range = max - min;
+	return getRandomInt(range) + min;
 }
 
-export function maybeDo(percentChance: number): boolean{
-    if(percentChance < 0){
-        return false;
-    }
-    
-    if(percentChance > 100){
-        return true;
-    }
+export function maybeDo(percentChance: number): boolean {
+	if (percentChance < 0) {
+		return false;
+	}
 
-    const r = Math.random();
-    return (r * 100) < percentChance;
+	if (percentChance > 100) {
+		return true;
+	}
 
-    return false;
+	const r = Math.random();
+	return (r * 100) < percentChance;
+
+	return false;
+}
+
+export function sameSign(a: number, b: number): boolean {
+	return (a > 0 && b > 0) || (a < 0 && b < 0);
 }

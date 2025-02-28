@@ -8,6 +8,7 @@ import { mapKeyToInputAction } from './KeyMapping.ts';
 import { getGreeplantInstanceData, getGrobberInstanceData } from './creatureSpecific/grobber.ts';
 import { PipelineBundle, RenderDataObject } from './RenderDataObject.ts';
 import { GreeplantRenderDataObject } from './creatureSpecific/GreeplantRenderDataObject.ts';
+import { GrobberRenderDataObject } from './creatureSpecific/GrobberRenderDataObject.ts';
 
 const simpleShader = await Deno.readTextFile(
 	'./src/Graphics/shaders/simple.wgsl',
@@ -36,17 +37,6 @@ export async function startWebGpuWindow(gameState: GameState) {
 
 	const surface = window.windowSurface();
 	const context = surface.getContext('webgpu');
-
-	//Greeplant
-	const spriteVertices = generateStarCentered(
-		normalizeColor(GreeplantColor()),
-		0.5,
-		0.25,
-		8,
-		0,
-		0,
-		1.1,
-	);
 
 	const swapChainFormat = 'bgra8unorm';
 	context.configure({
@@ -139,19 +129,6 @@ export async function startWebGpuWindow(gameState: GameState) {
 	});
 	device.queue.writeBuffer(mapVertexBuffer, 0, vertices);
 
-	const spriteVertexBuffer = device.createBuffer({
-		label: 'Instance Vertices',
-		size: spriteVertices.byteLength,
-		usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-	});
-	device.queue.writeBuffer(spriteVertexBuffer, 0, spriteVertices);
-
-	const maxCreatures = 1000000;
-	const instanceBuffer = device.createBuffer({
-		label: 'Instance Buffer',
-		size: maxCreatures * 8,
-		usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-	});
 	const vertexBufferLayout: GPUVertexBufferLayout = {
 		arrayStride: 28, //floats per stride * 4
 		attributes: [{
@@ -227,14 +204,19 @@ export async function startWebGpuWindow(gameState: GameState) {
 			{ binding: 0, resource: { buffer: uniformBuffer } },
 		],
 	});
-	const sampleRDOPipelineBundle: PipelineBundle = {
+	const instancePipelineBundle: PipelineBundle = {
 		instanceBindGroup: instanceBindGroup,
 		instancePipeline: instancePipeline,
 	};
-	const sampleRDO = new GreeplantRenderDataObject(
+	const greeplants = new GreeplantRenderDataObject(
 		gameState,
 		device,
-		sampleRDOPipelineBundle,
+		instancePipelineBundle,
+	);
+	const grobbers = new GrobberRenderDataObject(
+		gameState,
+		device,
+		instancePipelineBundle,
 	);
 	logTiming('Buffers/Pipeline Set');
 
@@ -272,11 +254,8 @@ export async function startWebGpuWindow(gameState: GameState) {
 		uniformValues.set([panx, pany], uPanOffset);
 		device.queue.writeBuffer(uniformBuffer, 0, uniformValues);
 
-		//        const instancesData = getGrobberInstanceData(gameState);
-		const instancesData = getGreeplantInstanceData(gameState);
-		device.queue.writeBuffer(instanceBuffer, 0, instancesData);
-
-		sampleRDO.writeBuffers();
+		greeplants.writeBuffers();
+		grobbers.writeBuffers();
 
 		const commandEncoder = device.createCommandEncoder();
 		let clearColor = normalizeColor(DeepBlue());
@@ -300,13 +279,8 @@ export async function startWebGpuWindow(gameState: GameState) {
 		passEncoder.setBindGroup(0, simpleBindGroup);
 		passEncoder.draw(vertices.length / 7);
 
-		passEncoder.setPipeline(instancePipeline);
-		passEncoder.setVertexBuffer(0, spriteVertexBuffer); // Sprite vertices
-		passEncoder.setVertexBuffer(1, instanceBuffer); // Instance data
-		passEncoder.setBindGroup(0, instanceBindGroup);
-		passEncoder.draw(spriteVertices.length / 7, instancesData.length / 2); // Number of instances
-
-		sampleRDO.draw(passEncoder);
+		greeplants.draw(passEncoder);
+		grobbers.draw(passEncoder);
 
 		passEncoder.end();
 		device.queue.submit([commandEncoder.finish()]);
