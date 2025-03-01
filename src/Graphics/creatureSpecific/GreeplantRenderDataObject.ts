@@ -1,7 +1,9 @@
+import { ReleaseShaderCompiler } from 'https://deno.land/x/gluten@0.1.3/api/gles23.2.ts';
 import { Greeplant } from '../../simulation/Vegetations/Greeplant/Greeplant.ts';
 import { GreeplantColor, normalizeColor } from '../colors.ts';
 import { RenderDataObject } from '../RenderDataObject.ts';
 import { generateStarCentered } from '../shapeFunctions.ts';
+import { rescale } from '../../utils/funcs.ts';
 
 export class GreeplantRenderDataObject extends RenderDataObject {
 	override descriptor = 'Greeplant';
@@ -19,7 +21,10 @@ export class GreeplantRenderDataObject extends RenderDataObject {
 			const idx = i * 4;
 			f32[idx] = r[i].x;
 			f32[idx + 1] = r[i].y;
-			const growthScale = r[i].growthStage / 10;
+			/** Growth scale  */
+			let growthScale = 0.5;
+			const gs = r[i].growthStage;
+			growthScale = rescale(0, 12, 0.5, 1.1, gs);
 			f32[idx + 2] = growthScale;
 			f32[idx + 3] = growthScale;
 		}

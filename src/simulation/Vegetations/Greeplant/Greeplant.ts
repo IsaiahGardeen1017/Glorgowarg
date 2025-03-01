@@ -1,28 +1,28 @@
-import { getRandomInt, maybeDo } from '../../../utils/funcs.ts';
+import { getRandomInt, getRandomIntRange, maybeDo } from '../../../utils/funcs.ts';
 import { GameState } from '../../GameState.ts';
 import { TileType } from '../../Tile.ts';
 import { Vegetation, VegetationTypes } from '../Vegetation.ts';
 
-const GROW_RANGE = 7;
-const GROW_CHANCE = 10;
-const PLANT_CHANCE = 3;
+const GROW_RANGE = 5;
+const GROW_CHANCE = 5;
+const PLANT_CHANCE = 2;
 
-const SIZE_VARIETY = 5;
-const GROWTH_MAX = 10;
+//8 to 12
+const GROWTH_MAX = 8;
+const SIZE_VARIETY = 4;
 
+const PLANT_MIN_SIZE = 5;
 const MAX_PLANT_ATTEMPTS = 3;
-const DIE_CHANCE = 5;
 
-const ACCEPTABLE_TYPES: TileType[] = ['dirt', 'steppe'];
 export class Greeplant extends Vegetation {
+	static override validTileTypes: TileType[] = ['dirt', 'steppe'];
+
 	growthStage: number;
-	plantAttempts: number;
 
 	constructor(gameStateRef: GameState, x: number, y: number) {
 		super(gameStateRef, x, y, 'greeplant');
 		this.type = 'greeplant';
 		this.growthStage = 1;
-		this.plantAttempts = 0;
 	}
 
 	process(): void {
@@ -31,24 +31,17 @@ export class Greeplant extends Vegetation {
 			if (maybeDo(GROW_CHANCE)) {
 				this.growthStage++;
 			}
-		} else if (maybeDo(PLANT_CHANCE)) {
-			if (this.plantAttempts >= MAX_PLANT_ATTEMPTS) {
-				this.die();
-			} else {
-				this.plantAttempts++;
+		}
+		if (this.growthStage > PLANT_MIN_SIZE && maybeDo(PLANT_CHANCE)) {
+			let xCoord = getRandomIntRange(-GROW_RANGE, GROW_RANGE) + this.x;
+			let yCoord = getRandomIntRange(-GROW_RANGE, GROW_RANGE) + this.y;
 
-				let xCoord = maybeDo(50) ? getRandomInt(GROW_RANGE) : -getRandomInt(GROW_RANGE);
-				let yCoord = maybeDo(50) ? getRandomInt(GROW_RANGE) : -getRandomInt(GROW_RANGE);
-
-				xCoord = xCoord + this.x;
-				yCoord = yCoord + this.y;
-
-				const targetTile = this.gameStateRef.map.tiles[xCoord] ? this.gameStateRef.map.tiles[xCoord][yCoord] : undefined;
-				if (targetTile) {
-					if (ACCEPTABLE_TYPES.includes(targetTile.type)) {
-						if (targetTile.vegetations.length === 0) {
-							new Greeplant(this.gameStateRef, xCoord, yCoord);
-						}
+			const targetTile = this.gameStateRef.map.tiles[xCoord] ? this.gameStateRef.map.tiles[xCoord][yCoord] : undefined;
+			if (targetTile) {
+				if (Greeplant.validTileTypes.includes(targetTile.type)) {
+					if (targetTile.vegetations.length === 0) {
+						new Greeplant(this.gameStateRef, xCoord, yCoord);
+						this.growthStage -= 2;
 					}
 				}
 			}
@@ -65,5 +58,15 @@ export class Greeplant extends Vegetation {
 		const greeplantArr = this.gameStateRef.vegetations[this.type];
 		const idx2rm = greeplantArr.indexOf(this);
 		greeplantArr.splice(idx2rm, 1);
+	}
+
+	beMunched(munchPower: number): number {
+		if (this.growthStage <= munchPower) {
+			this.die();
+			return this.growthStage;
+		} else {
+			this.growthStage = this.growthStage - munchPower;
+			return munchPower;
+		}
 	}
 }

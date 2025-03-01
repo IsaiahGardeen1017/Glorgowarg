@@ -62,7 +62,7 @@ export class GameState {
 
 const defCreVegOpts: InitialCreAndVegOptions = {
 	numGrobbers: 10,
-	numGreeplants: 15,
+	numGreeplants: 30,
 };
 
 type InitialCreAndVegOptions = {
@@ -76,13 +76,11 @@ function generateInitialCreatures(gameState: GameState, xSize: number, ySize: nu
 	//Create Grobbers
 	const grobberRange = 0.25;
 	for (let i = 0; i < initOps.numGrobbers; i++) {
-		grobberArr.push(
-			new Grobber(
-				gameState,
-				getRandomIntRange(Math.floor((1 - grobberRange) * xSize), Math.floor(grobberRange * xSize)),
-				getRandomIntRange(Math.floor((1 - grobberRange) * ySize), Math.floor(grobberRange * ySize)),
-			),
-		);
+		const x = getRandomIntRange(Math.floor((1 - grobberRange) * xSize), Math.floor(grobberRange * xSize));
+		const y = getRandomIntRange(Math.floor((1 - grobberRange) * ySize), Math.floor(grobberRange * ySize));
+		if (Grobber.validTileTypes.includes(gameState.getTile(x, y).type)) {
+			new Grobber(gameState, x, y);
+		}
 	}
 	return {
 		'grobber': grobberArr,
@@ -99,13 +97,13 @@ function generateInitialVegetations(
 
 	const greePlantRange = 0.25;
 	for (let i = 0; i < initOps.numGreeplants; i++) {
-		greeplantArr.push(
-			new Greeplant(
-				gameState,
-				getRandomIntRange(Math.floor((1 - greePlantRange) * xSize), Math.floor(greePlantRange * xSize)),
-				getRandomIntRange(Math.floor((1 - greePlantRange) * ySize), Math.floor(greePlantRange * ySize)),
-			),
-		);
+		const x = getRandomIntRange(Math.floor((1 - greePlantRange) * xSize), Math.floor(greePlantRange * xSize));
+		const y = getRandomIntRange(Math.floor((1 - greePlantRange) * ySize), Math.floor(greePlantRange * ySize));
+		if (Greeplant.validTileTypes.includes(gameState.getTile(x, y).type)) {
+			greeplantArr.push(
+				new Greeplant(gameState, x, y),
+			);
+		}
 	}
 	return {
 		'greeplant': greeplantArr,

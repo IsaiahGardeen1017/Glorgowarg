@@ -1,3 +1,5 @@
+import { magenta } from 'https://deno.land/std@0.157.0/fmt/colors.ts';
+
 type Vector = {
 	x: number;
 	y: number;
@@ -15,5 +17,9 @@ function mag(vec: Vector): number {
 }
 
 export function normalize(a: Vector): Vector {
-	return { x: a.x / mag(a), y: a.y / mag(a) };
+	const m = mag(a);
+	return {
+		x: m ? a.x / m : 0,
+		y: m ? a.y / m : 0,
+	};
 }
