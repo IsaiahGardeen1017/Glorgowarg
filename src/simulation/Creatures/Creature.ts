@@ -22,17 +22,19 @@ export abstract class Creature {
 
 		this.gameStateRef.creatures[this.type].push(this);
 	}
-
+    
 	die(): void {
-		//Remove from GameState Memory
+        //Remove from GameState Memory
 		const greeplantArr = this.gameStateRef.creatures[this.type];
 		const idx2rm = greeplantArr.indexOf(this);
 		greeplantArr.splice(idx2rm, 1);
 	}
-
+    
 	myTile() {
-		return this.gameStateRef.map.tiles[this.x][this.y];
+        return this.gameStateRef.map.tiles[this.x][this.y];
 	}
-
+    
+    
+    abstract getStatus(): string;
 	abstract process(): void;
 }

@@ -14,7 +14,7 @@ const REPRODUCTION_COST = 20;
 const GROWTH_COST = 10;
 const MAX_SIZE = 4;
 const STOMACH_PER_SIZE = 5;
-const USE_FOOBAR_CHANCE = 0.2;
+const USE_FOOBAR_CHANCE = 2;
 
 export class Grobber extends Creature {
 	static override validTileTypes: TileType[] = ['dirt', 'steppe', 'spawn'];
@@ -29,6 +29,8 @@ export class Grobber extends Creature {
 	foodbar: number;
 	growth: number;
 
+	name: string;
+
 	constructor(gameState: GameState, x: number, y: number) {
 		super(gameState, x, y, 'grobber');
 		this.velX = 0;
@@ -36,6 +38,10 @@ export class Grobber extends Creature {
 
 		this.foodbar = BASE_STOMACH_SIZE;
 		this.growth = 1;
+
+		const names = ['Grob', 'Yob', 'Glorlap', 'Glongor', 'Yongor', 'Blingor', 'Grontac', 'Pongor', 'Yingler', 'Clorb Glorblious'];
+		this.name = names[getRandomInt(names.length)] + '-' + getRandomInt(9999);
+		console.log(`===== ${this.name} born =============`);
 	}
 
 	maybeMove(): void {
@@ -93,7 +99,7 @@ export class Grobber extends Creature {
 			const vegs = tile.vegetations;
 			if (vegs.length > 0) {
 				const veg = vegs[getRandomInt(vegs.length)];
-				veg.beMunched(MUNCH_STRENGTH);
+				this.foodbar += veg.beMunched(MUNCH_STRENGTH);
 			}
 		}
 		this.lastMunchCandidate = tile;
@@ -108,8 +114,7 @@ export class Grobber extends Creature {
 				this.foodbar--;
 			}
 		}
-
-		if (this.growth + 5 > stomachSize && this.growth > REPRODUCTION_COST) {
+		if (this.foodbar + 2 >= stomachSize && this.foodbar > REPRODUCTION_COST) {
 			new Grobber(this.gameStateRef, this.x, this.y);
 			this.foodbar - GROWTH_COST;
 		}
@@ -122,6 +127,18 @@ export class Grobber extends Creature {
 		if (this.foodbar <= 0) {
 			this.die();
 		}
+	}
+
+	getStatus(): string {
+		return `--${this.name}--------\n` +
+			`Foodbar: ${this.foodbar}\n` +
+			`Growth: ${this.growth}\n` +
+			`targetX: ${this.targetX}\n` +
+			`targetY: ${this.targetY}\n` +
+			`X: ${this.x}\n` +
+			`Y: ${this.y}\n` +
+			`velX: ${this.velX}\n` +
+			`velY: ${this.velY}\n`;
 	}
 
 	process(): void {

@@ -45,15 +45,16 @@ export class GameState {
 
 	process() {
 		for (const arrKey in this.creatures) {
-			let creatureArray = this.creatures[arrKey];
+			const creatureArray = this.creatures[arrKey];
 			for (let i = 0; i < creatureArray.length; i++) {
 				creatureArray[i].process();
+				console.log(creatureArray[i].getStatus());
 			}
 		}
 		for (const arrKey in this.vegetations) {
-			let creatureArray = this.vegetations[arrKey];
-			for (let i = 0; i < creatureArray.length; i++) {
-				creatureArray[i].process();
+			const vegArray = this.vegetations[arrKey];
+			for (let i = 0; i < vegArray.length; i++) {
+				vegArray[i].process();
 			}
 		}
 		this.ticks++;
@@ -62,7 +63,7 @@ export class GameState {
 
 const defCreVegOpts: InitialCreAndVegOptions = {
 	numGrobbers: 10,
-	numGreeplants: 30,
+	numGreeplants: 75,
 };
 
 type InitialCreAndVegOptions = {
@@ -74,7 +75,7 @@ function generateInitialCreatures(gameState: GameState, xSize: number, ySize: nu
 	let grobberArr: Creature[] = [];
 
 	//Create Grobbers
-	const grobberRange = 0.25;
+	const grobberRange = 0.15; //This doesn't work as expected, 0.1 is large, 0.4 is small
 	for (let i = 0; i < initOps.numGrobbers; i++) {
 		const x = getRandomIntRange(Math.floor((1 - grobberRange) * xSize), Math.floor(grobberRange * xSize));
 		const y = getRandomIntRange(Math.floor((1 - grobberRange) * ySize), Math.floor(grobberRange * ySize));
@@ -95,7 +96,7 @@ function generateInitialVegetations(
 ): VegetationObj {
 	let greeplantArr: Vegetation[] = [];
 
-	const greePlantRange = 0.25;
+	const greePlantRange = 0.1; //This doesn't work as expected, 0.1 is large, 0.4 is small
 	for (let i = 0; i < initOps.numGreeplants; i++) {
 		const x = getRandomIntRange(Math.floor((1 - greePlantRange) * xSize), Math.floor(greePlantRange * xSize));
 		const y = getRandomIntRange(Math.floor((1 - greePlantRange) * ySize), Math.floor(greePlantRange * ySize));
