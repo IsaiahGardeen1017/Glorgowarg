@@ -3,7 +3,7 @@ import * as PIXI from 'pixi.js';
 
 console.log('PixiJS version:', PIXI.VERSION);
 
-export function startGraphics() {
+export async function startGraphics() {
 	console.log('here');
 
 	const adapter = await navigator.gpu.requestAdapter();
@@ -15,4 +15,7 @@ export function startGraphics() {
 		height: 1080,
 		resizable: true,
 	});
+
+	mainloop(() => {
+	}, false);
 }

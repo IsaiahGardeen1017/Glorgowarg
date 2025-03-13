@@ -1,0 +1,11 @@
+{
+    "compilerOptions": {
+        "lib": [
+            "dom",
+            "esnext"
+        ],
+        "types": [
+            "@types/wicg-file-system-access"
+        ]
+    }
+}
