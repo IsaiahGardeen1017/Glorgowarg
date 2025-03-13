@@ -1,0 +1,18 @@
+{
+    "tasks": {
+        "dev": "deno run --watch main.ts",
+        "go": "deno run --allow-import --allow-env --allow-read --allow-ffi --allow-write --allow-net --v8-flags=--max-old-space-size=8000 --unstable-webgpu main.ts",
+        "test": "deno run --allow-import  main-tester.ts"
+    },
+    "imports": {
+        "@std/assert": "jsr:@std/assert@1"
+    },
+    "fmt": {
+        "options": {
+            "useTabs": true,
+            "singleQuote": true,
+            "proseWrap": "never",
+            "lineWidth": 135
+        }
+    }
+}
